@@ -53,7 +53,8 @@ MODEL_REVISION = "2026-08-16-tacview-reconciliation"
 
 
 @st.cache_resource
-def airport_db():
+def airport_db(model_revision: str):
+    _ = model_revision
     return AirportDatabase()
 
 
@@ -143,7 +144,7 @@ with st.sidebar.expander("Departure runway", expanded=True):
     runway_source = st.radio("Source", ["DCS airport database", "Manual"])
     runway_condition = st.selectbox("Condition", ["DRY", "WET"])
     if runway_source == "DCS airport database":
-        db = airport_db()
+        db = airport_db(MODEL_REVISION)
         map_name = st.selectbox("DCS map", db.maps)
         airport = st.selectbox("Airfield", db.airports(map_name))
         runway_end = st.selectbox("Runway", db.runway_ends(map_name, airport))
