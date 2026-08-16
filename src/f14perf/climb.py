@@ -199,6 +199,7 @@ class ClimbModel:
             f"Use {rpm_label}; plan 250 KIAS through 10,000 ft, then 300 KIAS to the Mach 0.72 crossover.",
             "Rates are conservative mission-planning allowances. They are not maximum-rate predictions.",
             "Displayed fuel flow is PPH per engine; profile fuel burn is the two-engine aircraft total.",
+            "Elapsed time is rounded up to a whole minute and fuel is rounded up to 500 lb to avoid false precision.",
         ]
         if unmet_segments:
             notes.append(f"{unmet_segments} segment(s) through 10,000 ft fall below the selected planning gradient.")
@@ -213,8 +214,8 @@ class ClimbModel:
             strategy=strategy_key,
             label=CLIMB_STRATEGY_LABELS[strategy_key],
             points=points,
-            time_min=round(total_minutes, 1),
-            fuel_burn_lb=math.ceil(fuel_burn_lb / 50.0) * 50,
+            time_min=math.ceil(total_minutes),
+            fuel_burn_lb=math.ceil(fuel_burn_lb / 500.0) * 500,
             altitude_gain_ft=round(altitude_gain_ft),
             target_gradient_ft_nm=round(target_gradient_ft_nm),
             unmet_segments=unmet_segments,

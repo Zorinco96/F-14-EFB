@@ -24,6 +24,9 @@ The following findings changed the application:
 4. The energy section used the same unvalidated low-order polar to publish specific excess power and sustained-turn values. These have been removed. The replacement is limited to ideal coordinated-turn geometry, which does not assert aircraft capability.
 5. Landing planning lacked a loadout-sensitive recovery fuel reference. The app now derives retained zero-fuel weight from entered gross weight and starting fuel, then shows field and carrier maximum fuel with stores retained and with selected expendable stores expended.
 6. Repeated low-confidence banners obscured the mission card. The UI now consolidates planning notes in one panel and handles uncertainty through conservative values and an explicit planning hold.
+7. The prior 54,000 lb on-speed estimate of 133 KIAS did not match NAVAIR 01-F14AAP-1 Figure 11-8. The flight-test chart gives approximately 140 KIAS with DLC neutral and 131 KIAS with DLC stowed, with a chart tolerance of +/-4 kt. The app now displays both lines.
+8. `MEETS PLAN` overstated the confidence of an unverified legacy result. The neutral status is now `LEGACY FIT`, and external-store or hot/high reduced-thrust conditions remain on `PLANNING HOLD`.
+9. Climb, cruise power, and mission-fuel outputs carried unnecessary precision. Climb time and fuel are rounded upward, cruise power is rounded upward to usable cockpit increments, and mission burn is rounded upward to 500 lb.
 
 These changes do not convert unverified legacy tables into validated data. They reduce false precision and make the remaining assumptions operationally visible.
 
@@ -89,7 +92,7 @@ The legacy V-speed table includes V2 and Vfs versus gross weight, but its absolu
 
 ### 5. Pre-roll trim and OEI climb reference
 
-The current Heatblur post-start procedure specifies trim 000 before takeoff and documents approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check. F-14 EFB retains provisional app values of 6.0 ANU MANEUVER, 3.0 ANU UP, and 0.0 ANU FULL while controlled testing continues. The displayed 5.0 to 7.0 ANU MANEUVER range is a trial range, not an accepted band. In the latest 62,000 lb F-14B(U) test with two external tanks and two AIM-9s, 5.0 ANU UP was slightly heavy and 6.5 ANU MANEUVER was heavy. The next 0.5-ANU candidates are 5.5 UP and 7.0 MANEUVER. The schedule targets easy rotation at V2 without excessive backpressure and requires validation across center-of-gravity and loadout conditions. The OEI climb target is separately defined as V2+15, gear up, with MILITARY thrust on the operating engine. No claim is made that pitch trim automatically commands or holds that airspeed.
+The current Heatblur post-start procedure specifies trim 000 before takeoff and documents approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check. The latest 62,000 lb F-14B(U) tests with two external tanks and two AIM-9s found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy. The app now advances one 0.5-ANU test increment to 5.5 UP and 7.0 MANEUVER. These are next controlled-trial candidates, not accepted operational settings. FULL remains at the 0.0 ANU baseline until a controlled test exists. The schedule targets easy rotation through the planned cue without excessive backpressure and requires validation across center-of-gravity and loadout conditions. The OEI climb target is separately defined as V2+15, gear up, with MILITARY thrust on the operating engine. No claim is made that pitch trim automatically commands or holds that airspeed.
 
 ### 6. Landing grid: `data/f14_landing_natops_full.csv`
 
@@ -102,6 +105,8 @@ This is a dense ground-roll grid over:
 - headwind
 
 V3 performs multilinear interpolation. Wet-runway corrections are not present in the source grid and are therefore marked ESTIMATED.
+
+Normal on-speed IAS now uses NAVAIR 01-F14AAP-1 Figure 11-8, whose data basis is flight test. At 54,000 lb and 15 units AOA, the digitized references are approximately 140 KIAS with DLC neutral and 131 KIAS with DLC stowed. The chart specifies indicated-airspeed tolerance of +/-4 kt. The chart covers 40,000 through 60,000 lb, 20-degree wing sweep, and all drag indexes.
 
 ### 7. Cruise table: `data/f14_cruise_natops.csv`
 

@@ -94,7 +94,7 @@ At 55,000, 65,000, and 75,000 lb, test each takeoff flap configuration on a stan
 7. Record distance, height, actual IAS, climb gradient, yaw-control margin, pitch-trim command, and stabilator position if available.
 8. Repeat each condition three times.
 
-The current app schedule remains 6.0 ANU MANEUVER, 3.0 ANU UP, and 0.0 ANU FULL while testing continues. Do not treat the former 5.0 to 7.0 ANU MANEUVER range as an accepted band. In the latest 62,000 lb F-14B(U) test with two external tanks and two AIM-9s, 5.0 ANU UP was slightly heavy and 6.5 ANU MANEUVER was heavy. The next controlled candidates are 5.5 ANU UP and 7.0 ANU MANEUVER, changing only 0.5 ANU per run. The rotation acceptance criterion is a smooth rotation initiated at V2 with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record the best setting and acceptable band by flap configuration, center of gravity, and loadout. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
+The current app schedule advances to the next controlled candidates: 5.5 ANU UP, 7.0 ANU MANEUVER, and the unvalidated 0.0 ANU FULL baseline. In the latest 62,000 lb F-14B(U) test with two external tanks and two AIM-9s, 5.0 ANU UP was slightly heavy and 6.5 ANU MANEUVER was heavy. Change only 0.5 ANU per run. The rotation acceptance criterion is a smooth rotation through the planned cue with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record the best setting and acceptable band by flap configuration, center of gravity, and loadout. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
 
 ## Priority 5: climb
 

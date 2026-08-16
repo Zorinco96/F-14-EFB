@@ -31,12 +31,12 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
   - MANEUVER 90%
   - FULL 96%
 - AUTO never selects afterburner
-- default 50% headwind credit / 150% tailwind penalty, with a 0% / 150% option
+- default 0% headwind credit / 150% tailwind penalty, with a 50% / 150% option
 - V1 reference, balanced-field-style V1 sweep, Vr, V2, Vfs, and Vs reference
 - integer V-speed presentation
 - resolved MILITARY or REDUCED thrust label
 - separate commanded RPM and observed EIG RPM/FF references, using Batumi static and local Henderson +40 C observations
-- flap-compensated takeoff pitch-trim setting established before the roll, targeting an easy rotation at V2 without excessive backpressure
+- next-trial takeoff pitch-trim candidates established before the roll: 5.5 ANU UP and 7.0 ANU MANEUVER, targeting an easy rotation without excessive backpressure
 - separate OEI climb target of V2+15, gear up, with MILITARY thrust on the operating engine
 - explicit note that trim does not command or guarantee climb airspeed
 - accelerate-stop distance
@@ -54,7 +54,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 
 - conservative MIL and 95% dry mission-planning schedules to the selected cruise flight level
 - 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover
-- guarded rate-of-climb and time allowances that are not presented as maximum aircraft capability
+- guarded rate-of-climb and time allowances that are not presented as maximum aircraft capability; time and fuel are rounded upward
 - conservative two-engine climb fuel burn
 - fuel flow displayed in PPH per engine
 - weight, stores, and ISA-deviation planning allowances
@@ -65,7 +65,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - optimum cruise altitude from the legacy weight/drag-index table
 - altitude rounded to the nearest usable 1,000 ft flight level
 - KIAS and Mach at the rounded flight level
-- estimated RPM and fuel flow in PPH per engine
+- estimated initial RPM rounded upward to 5% and fuel flow rounded upward to 250 PPH per engine
 - estimated TAS
 - estimated specific range
 - estimated endurance
@@ -78,7 +78,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - dry/wet planning
 - runway planning factor
 - on-speed reference of 15 AOA units
-- estimated on-speed IAS
+- flight-test-chart on-speed IAS for DLC neutral and DLC stowed, with +/-4 kt chart tolerance
 - 60,000 lb field and 54,000 lb carrier landing references
 - maximum landing fuel with all stores retained
 - maximum landing fuel with selected expendable stores expended
@@ -98,7 +98,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - climb card
 - optimum cruise
 - landing reference
-- phase-based mission fuel estimate
+- phase-based mission fuel estimate rounded upward to 500 lb
 - JOKER / BINGO tracking
 - consolidated mission notes instead of repeated warning banners
 - downloadable 768 x 1024 DCS kneeboard PNG
@@ -113,7 +113,7 @@ The repository contains legacy datasets labeled as NATOPS-derived. Version 3 pre
 - CALIBRATED
 - ESTIMATED
 
-See `docs/PERFORMANCE_DATA_AUDIT.md` and `docs/MODEL_METHODS.md`.
+See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, and `docs/INTERFACE_OUTPUT_AUDIT_2026-08-16.md`.
 
 ## Run
 

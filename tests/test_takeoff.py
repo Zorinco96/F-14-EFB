@@ -56,7 +56,7 @@ def test_balanced_v1_below_vr(data_dir):
     assert result.v1_kt >= 0.84 * result.vr_kt - 1
 
 
-def test_default_takeoff_wind_credit(data_dir):
+def test_default_takeoff_wind_policy_uses_no_headwind_credit(data_dir):
     headwind = Environment(oat_c=15, qnh_inhg=29.92, wind_dir_deg=0, wind_speed_kt=20)
     result = TakeoffModel(data_dir).calculate(
         baseline(environment=headwind),
@@ -64,7 +64,7 @@ def test_default_takeoff_wind_credit(data_dir):
         100,
     )
     assert result.headwind_kt == 20
-    assert result.credited_headwind_kt == 10
+    assert result.credited_headwind_kt == 0
 
 
 def test_tailwind_penalty_and_zero_headwind_option(data_dir):
@@ -95,7 +95,7 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
     assert result.fuel_flow_pph_per_engine == 4800
     assert result.fuel_flow_pph_total == 9600
     assert result.vfs_kt == result.v2_kt + 20
-    assert result.stabilizer_trim_anu == 3.0
+    assert result.stabilizer_trim_anu == 5.5
     assert result.oei_climb_speed_kt == result.v2_kt + 15
     assert "before commencing the takeoff roll" in result.stabilizer_trim_note
     assert "gear up" in result.stabilizer_trim_note
@@ -112,18 +112,18 @@ def test_military_command_uses_observed_99_percent_eig_reference(data_dir):
 
 def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):
     model = TakeoffModel(data_dir)
-    expected_trim = {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0}
+    expected_trim = {"UP": 5.5, "MANEUVER": 7.0, "FULL": 0.0}
+    expected_bands = {"UP": (5.0, 5.5), "MANEUVER": (6.5, 7.0), "FULL": None}
     for weight_lb in (40000, 65000, 76000):
         base = baseline()
         inputs = TakeoffInputs(weight_lb, base.environment, base.runway)
         for flaps in ("UP", "MANEUVER", "FULL"):
             result = model.calculate(inputs, flaps, 100)
             assert result.stabilizer_trim_anu == expected_trim[flaps]
-            assert result.stabilizer_trim_band_anu == (
-                (5.0, 7.0) if flaps == "MANEUVER" else None
-            )
+            assert result.stabilizer_trim_band_anu == expected_bands[flaps]
             assert result.oei_climb_speed_kt == result.v2_kt + 15
-            assert "easy rotation at V2" in result.stabilizer_trim_note
+            assert "easy rotation" in result.stabilizer_trim_note
+            assert "next controlled DCS trial" in result.stabilizer_trim_note
 
 
 def test_external_store_takeoff_is_marked_unvalidated(data_dir):

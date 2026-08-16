@@ -3,12 +3,12 @@
   "simulation": "DCS World",
   "policy": {
     "allow_afterburner_auto_takeoff": false,
-    "runway_factor": 1.10,
+    "runway_factor": 1.15,
     "aeo_climb_gate_ft_nm": 300,
     "takeoff_wind_credit_pct": {
-      "headwind": 50,
+      "headwind": 0,
       "tailwind": 150,
-      "alternate_headwind": 0
+      "alternate_headwind": 50
     },
     "takeoff_rpm_floor_pct": {
       "UP": 85,
@@ -20,20 +20,20 @@
       "rotation_target_speed": "V2",
       "integrated_trim_full_flap_te_up_deg": 3.0,
       "schedule_method": "explicit provisional configuration schedule under controlled DCS testing",
-      "schedule_anu": {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0},
-      "maneuver_observed_band_anu": [5.0, 7.0],
+      "schedule_anu": {"UP": 5.5, "MANEUVER": 7.0, "FULL": 0.0},
+      "prior_test_anu": {"UP": 5.0, "MANEUVER": 6.5},
       "rotation_control_objective": "easy rotation at V2 without excessive backpressure",
-      "validation_status": "Current trim schedule remains provisional; 62,000 lb two-tank/two-AIM-9 tests found 5.0 UP slightly heavy and 6.5 MANEUVER heavy",
+      "validation_status": "Next controlled trial candidates only; 62,000 lb two-tank/two-AIM-9 tests found 5.0 UP slightly heavy and 6.5 MANEUVER heavy",
       "vfs_spread_source": "vspeeds.csv Vfs minus V2",
       "oei_climb_speed_increment_kt": 15,
       "oei_configuration": "GEAR UP",
       "oei_operating_engine_thrust": "MILITARY",
       "trim_controls_airspeed": false
     },
-    "climb_schedule_max_ias_kt": 250,
+    "climb_schedule": "250 KIAS through 10,000 ft, then 300 KIAS to Mach 0.72 crossover",
     "climb_profiles": {
-      "default": "MOST_EFFICIENT",
-      "most_efficient_rpm_range_pct": [85, 100],
+      "default": "MINIMUM_TIME",
+      "most_efficient_rpm_pct": 95,
       "minimum_time_power": "MILITARY",
       "minimum_time_rpm_pct": 100
     }

@@ -47,7 +47,9 @@ def test_cruise_table_point(data_dir):
     assert c.optimum_mach == 0.718
     assert c.optimum_ias_kt > 0
     assert c.rpm_pct > 0
+    assert c.rpm_pct % 5 == 0
     assert c.fuel_flow_pph_per_engine > 0
+    assert c.fuel_flow_pph_per_engine % 250 == 0
     assert c.fuel_flow_pph_total == c.fuel_flow_pph_per_engine * 2
 
 
@@ -57,6 +59,9 @@ def test_landing_table_point(data_dir):
     l = LandingModel(data_dir).calculate(54000, env, rwy)
     assert l.ground_roll_ft == 2800
     assert l.on_speed_aoa_units == 15
+    assert l.on_speed_ias_est_kt == 139.7
+    assert l.on_speed_ias_dlc_stowed_kt == 130.6
+    assert l.on_speed_ias_tolerance_kt == 4.0
 
 
 def test_energy_model_finite(data_dir):
@@ -72,6 +77,7 @@ def test_fuel_plan(data_dir):
     cruise = CruiseModel(data_dir).optimum(65000, 0)
     f = FuelModel().plan(16000, 100, climb, cruise, 4000, 2000)
     assert f.mission_burn_lb > 0
+    assert f.mission_burn_lb % 500 == 0
     assert f.landing_fuel_lb < f.starting_fuel_lb
 
 

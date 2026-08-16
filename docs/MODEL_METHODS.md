@@ -46,14 +46,14 @@ This is intentionally marked ESTIMATED.
 
 ### Runway
 
-The default planning factor is 1.10.
+The default planning factor is 1.15.
 
 V3 separately compares:
 
 - factored ASD to ASDA
 - factored AGD to TODA
 
-Wind is applied using ground-speed energy scaling after the takeoff wind policy is applied. The default credits 50% of a headwind and penalizes 150% of a tailwind. A conservative selectable option uses 0% headwind credit while retaining the 150% tailwind penalty. Slope and wet-runway effects are engineering corrections and are labeled accordingly.
+Wind is applied using ground-speed energy scaling after the takeoff wind policy is applied. The default credits 0% of a headwind and penalizes 150% of a tailwind. A selectable option credits 50% headwind while retaining the 150% tailwind penalty. Slope and wet-runway effects are engineering corrections and are labeled accordingly.
 
 ### AUTO
 
@@ -85,15 +85,15 @@ The selected dry-thrust command is displayed as either MILITARY or REDUCED (XX% 
 
 The mission-card standard requires a stabilator trim setting established before the takeoff roll and a separate OEI climb reference. The [Heatblur post-start checklist](https://f14.manuals.heatblur.se/f14ab/procedures/post_start.html) specifies trim 000 before takeoff. The same procedure identifies the integrated trim response to flap position and calls for approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check.
 
-F-14 EFB uses an explicit provisional configuration schedule. Recent loaded-aircraft tests show that the current schedule has not yet met the rotation-force acceptance criterion. The EFB currently presents:
+F-14 EFB uses an explicit provisional configuration schedule. Recent loaded-aircraft tests show that the previous schedule did not meet the rotation-force acceptance criterion. The EFB now presents the next controlled DCS trial candidates:
 
-- UP takeoff pitch trim: `3.0 ANU`
-- MANEUVER takeoff pitch trim: `6.0 ANU`, with `5.0-7.0 ANU` shown only as a trial range
+- UP takeoff pitch trim: `5.5 ANU`, after the `5.0 ANU` test was slightly heavy
+- MANEUVER takeoff pitch trim: `7.0 ANU`, after the `6.5 ANU` test was heavy
 - FULL takeoff pitch trim: `0.0 ANU`
 - OEI climb speed: `V2 + 15 KIAS`
 - OEI configuration: gear up, MILITARY thrust on the operating engine
 
-The pre-roll settings target an easy rotation at V2 without excessive backpressure. At 62,000 lb with two external tanks and two AIM-9s, the user found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy. The next 0.5-ANU test candidates are 5.5 UP and 7.0 MANEUVER, not validated operational values. All settings require a controlled matrix across center-of-gravity and loadout conditions. They are engineering estimates, not a validated NATOPS schedule. Pitch trim does not command an airspeed and cannot guarantee V2+15 after an engine failure. The pilot must control pitch to acquire and maintain the displayed OEI climb speed, then trim as required after establishing the flight path.
+The pre-roll settings target an easy rotation through the planned cue without excessive backpressure. They are not validated operational values. All settings require a controlled matrix across center-of-gravity and loadout conditions. They are engineering estimates, not a validated NATOPS schedule. Pitch trim does not command an airspeed and cannot guarantee V2+15 after an engine failure. The pilot must control pitch to acquire and maintain the displayed OEI climb speed, then trim as required after establishing the flight path.
 
 ## Takeoff stores and validation hold
 
@@ -126,7 +126,7 @@ The revised model provides two guarded planning schedules to the rounded optimum
 - MIL climb planning at 100% dry RPM
 - conservative dry planning at 95% RPM
 
-Both use 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover. Rate of climb is a deliberately conservative planning allowance adjusted for gross weight, positive ISA deviation, and the selected store-drag allowance. It is not a prediction of maximum climb capability.
+Both use 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover. Rate of climb is a deliberately conservative planning allowance adjusted for gross weight, positive ISA deviation, and the selected store-drag allowance. It is not a prediction of maximum climb capability. Operational output rounds elapsed time up to a whole minute and fuel up to 500 lb.
 
 Each profile reports:
 
@@ -141,7 +141,7 @@ The legacy F110 deck supplies only the per-engine fuel-flow estimate. The low-or
 
 Landing ground roll uses direct/interpolated values from `f14_landing_natops_full.csv`.
 
-On-speed AOA is 15 units per current Heatblur cockpit documentation. On-speed IAS is an explicit weight-scaled estimate and is labeled as such.
+On-speed AOA is 15 units. On-speed IAS uses the flight-test curves in NAVAIR 01-F14AAP-1 Figure 11-8 for 20-degree wing sweep and all drag indexes. The app displays both normal DLC-neutral IAS and DLC-stowed IAS with the chart's +/-4 kt tolerance.
 
 Landing fuel quick-reference calculations use:
 
@@ -157,7 +157,7 @@ Maximum fuel values are rounded down to the nearest 100 lb. Tanks, pods, racks, 
 
 Optimum altitude and Mach use the legacy cruise table. Raw altitude is rounded to the nearest 1,000 ft usable flight level before the display condition is calculated.
 
-The low-order aerodynamic model determines required thrust at the rounded flight level. The F110 deck is then searched for the lowest modeled dry RPM that meets drag. The UI reports KIAS, Mach, RPM, and fuel flow per engine. Specific range and endurance use the two-engine aircraft total internally and remain estimates.
+The low-order aerodynamic model determines required thrust at the rounded flight level. The F110 deck is then searched for the lowest modeled dry RPM that meets drag. Because that one-percent equilibrium result is not a cockpit calibration, the app rounds the initial RPM upward to 5-percent increments, recomputes fuel flow at that setting, and rounds fuel flow upward to 250 PPH per engine. Specific range and endurance use the two-engine aircraft total internally and remain estimates.
 
 ## Maneuver geometry
 
@@ -181,4 +181,4 @@ Mission fuel is phase-based:
 - cruise fuel from modeled fuel flow and route distance
 - descent/approach allowance
 
-The result is a planning estimate, not an F-14 fuel-planning chart replacement.
+The result is a planning estimate, not an F-14 fuel-planning chart replacement. Total mission burn is rounded upward to 500 lb.

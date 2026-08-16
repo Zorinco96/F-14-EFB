@@ -50,7 +50,19 @@ class CruiseModel:
                 break
         if selected is None:
             selected = self.engine.point(altitude, m, mode="MIL", rpm_pct=100.0, oat_c=oat)
-        ff_per_engine = max(1.0, selected.fuel_flow_pph_per_engine)
+        # The engine/drag model is not a cockpit calibration.  Round the first
+        # modeled equilibrium point upward to a usable 5-percent initial power
+        # setting, then round fuel flow upward to a 250-PPH planning increment.
+        # This avoids presenting a minimum one-percent solution as an exact DCS
+        # setting and keeps the fuel estimate on the cautious side.
+        planning_rpm = min(100.0, math.ceil(selected.rpm_pct / 5.0) * 5.0)
+        planning_point = self.engine.point(
+            altitude, m, mode="MIL", rpm_pct=planning_rpm, oat_c=oat
+        )
+        ff_per_engine = max(
+            250.0,
+            math.ceil(planning_point.fuel_flow_pph_per_engine / 250.0) * 250.0,
+        )
         total_ff = ff_per_engine * 2.0
         specific_range = tas_kt / total_ff * 1000.0
         endurance = 1000.0 / total_ff
@@ -64,7 +76,7 @@ class CruiseModel:
         estimate_prov = Provenance(
             Method.ESTIMATED,
             "Aero/engine cruise fuel model",
-            f"Estimated required thrust met near {selected.rpm_pct:.0f}% dry RPM",
+            f"Estimated required thrust met near {selected.rpm_pct:.0f}% dry RPM; initial setting rounded up to {planning_rpm:.0f}% and fuel flow rounded up to 250 PPH/engine",
             "Low-medium for fuel flow and specific range",
         )
         return CruiseResult(
@@ -73,14 +85,14 @@ class CruiseModel:
             optimum_mach=round(m, 3),
             optimum_ias_kt=round(ias_kt / 5.0) * 5,
             tas_kt=round(tas_kt),
-            rpm_pct=round(selected.rpm_pct),
-            fuel_flow_pph_per_engine=round(ff_per_engine / 50.0) * 50,
+            rpm_pct=round(planning_rpm),
+            fuel_flow_pph_per_engine=round(ff_per_engine),
             specific_range_nm_per_1000lb=round(specific_range, 2),
             endurance_hr_per_1000lb=round(endurance, 3),
             provenance=combine(table_prov, estimate_prov, source="Cruise solution"),
             notes=[
                 "Optimum altitude is rounded to the nearest 1,000 ft usable flight level.",
-                "KIAS, RPM, and fuel flow per engine are guarded model estimates at the rounded flight level.",
+                "KIAS is atmosphere-derived. RPM is a modeled initial setting rounded up to 5%; fuel flow per engine is rounded up to 250 PPH.",
                 "Specific range and endurance use the two-engine aircraft fuel flow.",
             ],
         )

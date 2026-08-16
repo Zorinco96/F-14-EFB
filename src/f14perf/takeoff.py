@@ -29,8 +29,12 @@ MANEUVER_ANCHOR = {
     "agd_ft": 2456.0,
 }
 CLIMB_ANCHOR_FT_NM = {"UP": 430.0, "MANEUVER": 455.0, "FULL": 410.0}
-TAKEOFF_TRIM_SCHEDULE_ANU = {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0}
-MANEUVER_TRIM_TEST_BAND_ANU = (5.0, 7.0)
+TAKEOFF_TRIM_SCHEDULE_ANU = {"UP": 5.5, "MANEUVER": 7.0, "FULL": 0.0}
+TAKEOFF_TRIM_TEST_BANDS_ANU = {
+    "UP": (5.0, 5.5),
+    "MANEUVER": (6.5, 7.0),
+    "FULL": None,
+}
 
 
 class TakeoffModel:
@@ -361,18 +365,20 @@ class TakeoffModel:
             fuel_flow_pph_per_engine=round(eig_reference.fuel_flow_pph_per_engine),
             fuel_flow_pph_total=round(eig_reference.fuel_flow_pph_per_engine * 2.0),
             stabilizer_trim_anu=takeoff_trim_anu,
-            stabilizer_trim_band_anu=(
-                MANEUVER_TRIM_TEST_BAND_ANU if flaps == "MANEUVER" else None
-            ),
+            stabilizer_trim_band_anu=TAKEOFF_TRIM_TEST_BANDS_ANU[flaps],
             oei_climb_speed_kt=round(oei_climb_speed_kt),
             stabilizer_trim_note=(
-                f"Set pitch trim {takeoff_trim_anu:.1f} ANU before commencing the takeoff roll. "
+                f"Set pitch trim {takeoff_trim_anu:.1f} ANU before commencing the takeoff roll for the next controlled DCS trial. "
                 + (
-                    "The 6.0 ANU MANEUVER setting is provisional and the displayed 5.0 to 7.0 ANU range "
-                    "is a trial range, not an accepted band. It targets an easy rotation at V2 without excessive backpressure. "
+                    "The previous 6.5 ANU MANEUVER test was heavy; 7.0 ANU is the next trial candidate, not an accepted setting. "
                     if flaps == "MANEUVER"
-                    else "This provisional setting targets an easy rotation at V2 without excessive backpressure. "
+                    else (
+                        "The previous 5.0 ANU UP test was slightly heavy; 5.5 ANU is the next trial candidate, not an accepted setting. "
+                        if flaps == "UP"
+                        else "FULL-flap pitch trim remains an unvalidated baseline, not an accepted setting. "
+                    )
                 )
+                + "The target is an easy rotation through the planned rotation cue without excessive backpressure. "
                 +
                 "For an engine failure after rotation, establish gear up, fly V2+15, "
                 "and use MILITARY thrust on the operating engine. Trim as required after liftoff."
@@ -389,7 +395,7 @@ class TakeoffModel:
                 "AUTO never selects afterburner for takeoff.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",
-                "Current trim values are provisional. The latest 62,000 lb two-tank/two-AIM-9 tests found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy.",
+                "Trim is a DCS trial schedule. The latest 62,000 lb two-tank/two-AIM-9 tests found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy; the next candidates are 5.5 and 7.0 ANU.",
                 "FULL uses the legacy table's flap_deg=40 code while the cockpit configuration is displayed as FULL.",
             ],
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from .provenance import Method, Provenance
 from .types import ClimbPoint, CruiseResult, FuelPlan
 
@@ -37,7 +39,8 @@ class FuelModel:
         cruise_hours = max(0.0, route_nm) / max(100.0, cruise.tas_kt)
         cruise_burn = cruise.fuel_flow_pph_total * cruise_hours
         descent_approach = 550.0
-        mission_burn = taxi_takeoff + climb_burn + cruise_burn + descent_approach
+        unrounded_mission_burn = taxi_takeoff + climb_burn + cruise_burn + descent_approach
+        mission_burn = math.ceil(unrounded_mission_burn / 500.0) * 500.0
         landing = starting_fuel_lb - mission_burn
         joker = bingo_lb + joker_margin_lb
         if landing < bingo_lb:
@@ -57,7 +60,7 @@ class FuelModel:
             provenance=Provenance(
                 Method.ESTIMATED,
                 "Mission fuel planning model",
-                "Phase-based taxi/takeoff, conservative climb allowance, modeled cruise, fixed descent/approach allowance",
+                "Phase-based taxi/takeoff, conservative climb allowance, modeled cruise, fixed descent/approach allowance; total burn rounded up to 500 lb",
                 "Low-medium; intentionally biased toward fuel margin for DCS planning",
             ),
             warnings=warnings,

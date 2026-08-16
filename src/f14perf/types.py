@@ -37,9 +37,9 @@ class TakeoffInputs:
     flaps: str = "AUTO"
     thrust: str = "AUTO"
     rpm_pct: Optional[float] = None
-    runway_factor: float = 1.10
+    runway_factor: float = 1.15
     climb_target_ft_nm: float = 300.0
-    headwind_credit_pct: float = 50.0
+    headwind_credit_pct: float = 0.0
     tailwind_penalty_pct: float = 150.0
     takeoff_loadout: str = "Clean"
 
@@ -118,6 +118,8 @@ class LandingResult:
     factored_distance_ft: float
     on_speed_aoa_units: float
     on_speed_ias_est_kt: float
+    on_speed_ias_dlc_stowed_kt: float
+    on_speed_ias_tolerance_kt: float
     runway_margin_ft: float
     provenance: Provenance
     warnings: list[str] = field(default_factory=list)

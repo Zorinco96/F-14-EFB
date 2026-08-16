@@ -28,6 +28,14 @@ def test_airport_slope_derivation(data_dir):
     assert r.asda_ft == 8100
 
 
+def test_henderson_35l_is_available_in_production_database():
+    db = AirportDatabase()
+    r = db.get("Nevada", "Henderson Executive", "35L").runway
+    assert r.tora_ft == 6501
+    assert r.heading_deg == 353
+    assert r.elevation_ft == 2492
+
+
 def test_compressible_kias_mach_round_trip():
     atm = atmosphere(34000)
     kias = mach_to_cas_kt(0.718, atm["pressure_pa"])

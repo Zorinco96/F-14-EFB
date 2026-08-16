@@ -32,7 +32,7 @@ class LandingModel:
         environment: Environment,
         runway: Runway,
         flaps: str = "DOWN",
-        planning_factor: float = 1.10,
+        planning_factor: float = 1.15,
         carrier: bool = False,
     ) -> LandingResult:
         flap = flaps.upper()
@@ -72,25 +72,43 @@ class LandingModel:
         if carrier and weight_lb > 54000:
             warnings.append("Carrier landing weight exceeds the 54,000 lb maximum trap weight documented by Heatblur.")
 
-        on_speed = 133.0 * math.sqrt(max(0.4, weight_lb / 54000.0))
+        # NAVAIR 01-F14AAP-1, Figure 11-8 is a flight-test chart for 15 units
+        # AOA, 20-degree wing sweep, and all drag indexes.  The two plotted
+        # lines are nearly linear from 40,000 through 60,000 lb.  Digitizing
+        # those lines is materially better than the former square-root estimate,
+        # which understated the normal DLC-neutral reference by about 7 kt at
+        # 54,000 lb.
+        on_speed_dlc_neutral = 118.0 + 1.55 * ((weight_lb - 40_000.0) / 1_000.0)
+        on_speed_dlc_stowed = 111.0 + 1.40 * ((weight_lb - 40_000.0) / 1_000.0)
+        if not 40_000.0 <= weight_lb <= 60_000.0:
+            warnings.append(
+                "Landing on-speed IAS is outside the 40,000 to 60,000 lb Figure 11-8 chart range."
+            )
         table_prov = Provenance(
             lookup.method,
             "Legacy f14_landing_natops_full.csv",
             f"4-D landing ground-roll lookup: {lookup.detail}",
             "Medium-high inside legacy table grid; source transcription not independently re-digitized in v3",
         )
+        approach_method = (
+            Method.CALIBRATED
+            if 40_000.0 <= weight_lb <= 60_000.0
+            else Method.EXTRAPOLATED
+        )
         aoa_prov = Provenance(
-            Method.ESTIMATED,
-            "Heatblur 15-unit on-speed reference + v3 IAS estimate",
-            "On-speed AOA is documented; IAS scales with square root of landing weight from a 54,000 lb calibration point",
-            "AOA high confidence; IAS estimate low-medium",
+            approach_method,
+            "NAVAIR 01-F14AAP-1 Figure 11-8 flight-test chart",
+            "15 units AOA; wing sweep 20 degrees; all drag indexes; DLC-neutral and DLC-stowed lines digitized; chart IAS tolerance +/-4 kt",
+            "High for AOA and medium-high for chart-read IAS inside 40,000 to 60,000 lb",
         )
         prov = combine(table_prov, correction_prov, aoa_prov, source="Landing solution")
         return LandingResult(
             ground_roll_ft=round(ground_roll),
             factored_distance_ft=round(factored),
             on_speed_aoa_units=15.0,
-            on_speed_ias_est_kt=round(on_speed, 1),
+            on_speed_ias_est_kt=round(on_speed_dlc_neutral, 1),
+            on_speed_ias_dlc_stowed_kt=round(on_speed_dlc_stowed, 1),
+            on_speed_ias_tolerance_kt=4.0,
             runway_margin_ft=round(margin),
             provenance=prov,
             warnings=warnings,
@@ -122,11 +140,12 @@ class LandingModel:
             provenance=Provenance(
                 Method.ESTIMATED,
                 "F-14 landing gross-weight limits + entered mission weight",
-                "60,000 lb field and 54,000 lb carrier limits; selected-store expendable credit rounded down; results rounded down to 100 lb",
+                "60,000 lb field limit; 54,000 lb carrier/FCLP limit assumes AYC-679 or AYC-805; selected-store expendable credit rounded down; results rounded down to 100 lb",
                 "Conservative quick reference; verify actual DCS gross weight before recovery",
             ),
             notes=[
                 "All-stores-retained values use takeoff gross weight minus starting fuel as retained zero-fuel weight.",
                 "Expended values credit only selected weapons with a defined conservative expendable weight. Tanks, pods, racks, adapters, and unknown stores remain retained.",
+                "The 54,000 lb carrier/FCLP reference assumes the AYC-679 or AYC-805 modification appropriate to B(U) planning. The unmodified-aircraft limit is 51,800 lb except when operational necessity dictates.",
             ],
         )
