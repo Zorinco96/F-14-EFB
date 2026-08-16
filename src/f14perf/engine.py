@@ -191,12 +191,3 @@ class F110Deck:
             "Medium near the Batumi sea-level calibration knots; advisory away from them",
         )
         return EnginePoint(0.0, lookup.value, observed_rpm, prov)
-
-    def total(self, *args, engines: int = 2, **kwargs) -> EnginePoint:
-        p = self.point(*args, **kwargs)
-        return EnginePoint(
-            p.thrust_lbf_per_engine * engines,
-            p.fuel_flow_pph_per_engine * engines,
-            p.rpm_pct,
-            p.provenance,
-        )

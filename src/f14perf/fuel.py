@@ -22,15 +22,18 @@ class FuelModel:
             warnings.append("Starting fuel exceeds the roughly 20,000 lb usable-fuel figure documented by Heatblur.")
         taxi_takeoff = 400.0
         climb_burn = 0.0
+        previous_altitude = 0.0
         for p in climb_schedule:
             if p.roc_fpm <= 100:
                 continue
-            minutes = 1000.0 / p.roc_fpm
+            segment_ft = max(0.0, p.altitude_ft - previous_altitude)
+            previous_altitude = p.altitude_ft
+            minutes = segment_ft / p.roc_fpm
             climb_burn += p.fuel_flow_pph_total / 60.0 * minutes
         if climb_schedule and cruise.optimum_altitude_ft > climb_schedule[-1].altitude_ft:
             extra_alt = cruise.optimum_altitude_ft - climb_schedule[-1].altitude_ft
-            extra_minutes = extra_alt / 2500.0
-            climb_burn += max(cruise.fuel_flow_pph_total * 1.45, 12000.0) / 60.0 * extra_minutes
+            extra_minutes = extra_alt / 1500.0
+            climb_burn += max(cruise.fuel_flow_pph_total * 1.75, 14000.0) / 60.0 * extra_minutes
         cruise_hours = max(0.0, route_nm) / max(100.0, cruise.tas_kt)
         cruise_burn = cruise.fuel_flow_pph_total * cruise_hours
         descent_approach = 550.0
@@ -54,8 +57,8 @@ class FuelModel:
             provenance=Provenance(
                 Method.ESTIMATED,
                 "Mission fuel planning model",
-                "Phase-based taxi/takeoff, modeled climb, modeled cruise, fixed descent/approach allowance",
-                "Low-medium; intended for DCS planning and later calibration",
+                "Phase-based taxi/takeoff, conservative climb allowance, modeled cruise, fixed descent/approach allowance",
+                "Low-medium; intentionally biased toward fuel margin for DCS planning",
             ),
             warnings=warnings,
         )

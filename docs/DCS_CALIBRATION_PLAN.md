@@ -111,7 +111,7 @@ Record steady:
 - vertical speed
 - aircraft configuration
 
-For each weight, fly the generated Most Efficient and Minimum Time (MIL) schedules from brake release or 1,000 ft through 10,000 ft. Record elapsed time, fuel at profile start, and fuel at 10,000 ft. Compare the measured time/fuel tradeoff with the profile summary before changing either optimizer.
+For each weight, fly the generated 95% dry and MIL planning schedules from 1,000 ft to the rounded cruise flight level. Use 250 KIAS through 10,000 ft, then 300 KIAS to the Mach 0.72 crossover. Record elapsed time, fuel at profile start, fuel at 10,000 ft, and fuel at level-off. Record fuel flow per engine. Compare observed segment rates and total fuel against the guarded schedule before changing the planning allowances.
 
 ## Priority 6: cruise
 

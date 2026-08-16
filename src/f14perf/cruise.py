@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from .aero import F14AeroModel
-from .atmosphere import atmosphere
+from .atmosphere import atmosphere, mach_to_cas_kt
 from .data import read_csv, require_columns
 from .engine import F110Deck
 from .interpolate import regular_grid_interpolate
@@ -29,11 +30,13 @@ class CruiseModel:
         axes = {"gross_weight_lbs": weight_lb, "drag_index": drag_index}
         alt = regular_grid_interpolate(self.df, axes, "optimum_alt_ft")
         mach = regular_grid_interpolate(self.df, axes, "optimum_mach")
-        altitude = alt.value
+        raw_altitude = alt.value
+        altitude = int(math.floor(raw_altitude / 1000.0 + 0.5) * 1000)
         m = mach.value
         oat = 15.0 - 1.9812 * altitude / 1000.0 + isa_delta_c
         atm = atmosphere(altitude, oat)
         tas_kt = m * atm["speed_of_sound_kt"]
+        ias_kt = mach_to_cas_kt(m, atm["pressure_pa"])
         rho_slug = atm["rho_kg_m3"] * KG_M3_TO_SLUG_FT3
         aero = self.aero.point(
             weight_lb, rho_slug, tas_kt * KT_TO_FPS, m, "CLEAN", 1.0, drag_index
@@ -41,20 +44,21 @@ class CruiseModel:
 
         selected = None
         for rpm in range(70, 101):
-            p = self.engine.total(altitude, m, mode="MIL", rpm_pct=rpm, oat_c=oat)
-            if p.thrust_lbf_per_engine >= aero.drag_lbf:
+            p = self.engine.point(altitude, m, mode="MIL", rpm_pct=rpm, oat_c=oat)
+            if p.thrust_lbf_per_engine * 2.0 >= aero.drag_lbf:
                 selected = p
                 break
         if selected is None:
-            selected = self.engine.total(altitude, m, mode="MIL", rpm_pct=100.0, oat_c=oat)
-        ff = max(1.0, selected.fuel_flow_pph_per_engine)
-        specific_range = tas_kt / ff * 1000.0
-        endurance = 1000.0 / ff
+            selected = self.engine.point(altitude, m, mode="MIL", rpm_pct=100.0, oat_c=oat)
+        ff_per_engine = max(1.0, selected.fuel_flow_pph_per_engine)
+        total_ff = ff_per_engine * 2.0
+        specific_range = tas_kt / total_ff * 1000.0
+        endurance = 1000.0 / total_ff
         table_method = worst_method([alt.method, mach.method])
         table_prov = Provenance(
             table_method,
             "Legacy f14_cruise_natops.csv optimum-altitude table",
-            f"Weight/drag-index interpolation; source note: {self.df['source_note'].iloc[0]}",
+            f"Weight/drag-index interpolation; raw altitude {raw_altitude:.0f} ft rounded to a usable flight level; source note: {self.df['source_note'].iloc[0]}",
             "Medium-high for optimum altitude/Mach inside table; original digitization not re-verified in v3",
         )
         estimate_prov = Provenance(
@@ -65,14 +69,18 @@ class CruiseModel:
         )
         return CruiseResult(
             optimum_altitude_ft=round(altitude),
+            flight_level=round(altitude / 100),
             optimum_mach=round(m, 3),
+            optimum_ias_kt=round(ias_kt / 5.0) * 5,
             tas_kt=round(tas_kt),
-            fuel_flow_pph_total=round(ff),
+            rpm_pct=round(selected.rpm_pct),
+            fuel_flow_pph_per_engine=round(ff_per_engine / 50.0) * 50,
             specific_range_nm_per_1000lb=round(specific_range, 2),
             endurance_hr_per_1000lb=round(endurance, 3),
             provenance=combine(table_prov, estimate_prov, source="Cruise solution"),
             notes=[
-                "Optimum altitude/Mach comes from the legacy table when within its grid.",
-                "Fuel flow and specific range are model estimates using the F110 deck and low-order drag polar.",
+                "Optimum altitude is rounded to the nearest 1,000 ft usable flight level.",
+                "KIAS, RPM, and fuel flow per engine are guarded model estimates at the rounded flight level.",
+                "Specific range and endurance use the two-engine aircraft fuel flow.",
             ],
         )

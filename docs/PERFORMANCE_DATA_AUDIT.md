@@ -14,6 +14,19 @@ The desired hierarchy is:
 
 Every calculation should make its position in that hierarchy visible.
 
+## August 2026 operational audit
+
+The following findings changed the application:
+
+1. The previous climb optimizer returned roughly 18,000 to 27,000 fpm in ordinary mission cases. Its low-order polar and legacy engine deck did not support that precision. The optimizer has been removed from the operational path and replaced with a conservative mission-planning schedule.
+2. Climb and cruise fuel-flow values passed through `F110Deck.total()` but retained a `per_engine` field name. This made total and per-engine semantics easy to confuse. Operational displays now use explicit PPH per engine fields; mission fuel calculations multiply by two internally.
+3. Cruise optimum altitudes such as 33,900 ft were not immediately usable planning levels. The app now rounds to the nearest 1,000 ft flight level and recomputes KIAS/TAS at that level while retaining the tabulated Mach target.
+4. The energy section used the same unvalidated low-order polar to publish specific excess power and sustained-turn values. These have been removed. The replacement is limited to ideal coordinated-turn geometry, which does not assert aircraft capability.
+5. Landing planning lacked a loadout-sensitive recovery fuel reference. The app now derives retained zero-fuel weight from entered gross weight and starting fuel, then shows field and carrier maximum fuel with stores retained and with selected expendable stores expended.
+6. Repeated low-confidence banners obscured the mission card. The UI now consolidates planning notes in one panel and handles uncertainty through conservative values and an explicit planning hold.
+
+These changes do not convert unverified legacy tables into validated data. They reduce false precision and make the remaining assumptions operationally visible.
+
 ## Availability constraint
 
 The F-14B flight documentation references a separate performance supplement. That B/D performance volume is not included in this repository, and a complete unrestricted copy has not been established as a reliable public source for this project. As a result, v3 does not claim to recreate every F-14B NATOPS chart directly.
@@ -94,7 +107,7 @@ V3 performs multilinear interpolation. Wet-runway corrections are not present in
 
 The table provides optimum altitude and optimum Mach versus gross weight and drag index. The source note identifies a previously digitized F-14 performance table.
 
-V3 uses the table directly for optimum altitude/Mach. Fuel flow and specific range are then estimated with the F110 and aerodynamic models.
+V3 interpolates the table for optimum altitude/Mach, rounds altitude to the nearest 1,000 ft flight level, and recomputes KIAS/TAS at the rounded level. RPM, fuel flow per engine, and specific range are then estimated with the F110 and aerodynamic models.
 
 ### 8. F110 deck: `data/F110_engine.csv`
 
@@ -172,6 +185,8 @@ Preferred sequence:
 8. Wet-runway reject and landing tests
 9. Accurate station-loadout mapping to aerodynamic drag
 10. F-14B(U)-specific differences, if DCS behavior diverges from baseline F-14B
+
+Until items 5 and 6 are calibrated in DCS, climb rates remain conservative planning allowances and cruise RPM/fuel flow remain guarded estimates.
 
 ## Interpretation standard
 

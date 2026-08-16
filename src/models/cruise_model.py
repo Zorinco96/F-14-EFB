@@ -9,8 +9,11 @@ class CruiseModel(V3CruiseModel):
         return {
             "profile": profile,
             "optimum_altitude_ft": r.optimum_altitude_ft,
+            "flight_level": r.flight_level,
             "optimum_mach": r.optimum_mach,
+            "optimum_ias_kt": r.optimum_ias_kt,
             "tas_kt": r.tas_kt,
-            "fuel_flow_pph": r.fuel_flow_pph_total,
+            "rpm_pct": r.rpm_pct,
+            "fuel_flow_pph_per_engine": r.fuel_flow_pph_per_engine,
             "specific_range_nm_per_1000lb": r.specific_range_nm_per_1000lb,
         }

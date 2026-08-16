@@ -89,8 +89,13 @@ class ClimbPoint:
     rpm_pct: float
     roc_fpm: float
     gradient_ft_nm: float
-    fuel_flow_pph_total: float
+    fuel_flow_pph_per_engine: float
     provenance: Provenance
+
+    @property
+    def fuel_flow_pph_total(self) -> float:
+        """Aircraft total retained for fuel-burn calculations only."""
+        return self.fuel_flow_pph_per_engine * 2.0
 
 
 @dataclass
@@ -119,28 +124,49 @@ class LandingResult:
 
 
 @dataclass
-class CruiseResult:
-    optimum_altitude_ft: float
-    optimum_mach: float
-    tas_kt: float
-    fuel_flow_pph_total: float
-    specific_range_nm_per_1000lb: float
-    endurance_hr_per_1000lb: float
+class LandingFuelReference:
+    field_limit_lb: float
+    carrier_limit_lb: float
+    retained_zero_fuel_weight_lb: float
+    expendable_credit_lb: float
+    field_retained_fuel_lb: float
+    field_expended_fuel_lb: float
+    carrier_retained_fuel_lb: float
+    carrier_expended_fuel_lb: float
     provenance: Provenance
     notes: list[str] = field(default_factory=list)
 
 
 @dataclass
+class CruiseResult:
+    optimum_altitude_ft: float
+    flight_level: int
+    optimum_mach: float
+    optimum_ias_kt: float
+    tas_kt: float
+    rpm_pct: float
+    fuel_flow_pph_per_engine: float
+    specific_range_nm_per_1000lb: float
+    endurance_hr_per_1000lb: float
+    provenance: Provenance
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def fuel_flow_pph_total(self) -> float:
+        """Aircraft total retained for range and mission-fuel calculations."""
+        return self.fuel_flow_pph_per_engine * 2.0
+
+
+@dataclass
 class EnergyResult:
     speed_ias_kt: float
+    speed_tas_kt: float
     mach: float
-    ps_fps: float
-    instantaneous_g: float
-    instantaneous_turn_rate_dps: float
-    instantaneous_radius_ft: float
-    sustained_g: float
-    sustained_turn_rate_dps: float
-    sustained_radius_ft: float
+    planning_g: float
+    turn_rate_dps: float
+    turn_radius_ft: float
+    turn_180_sec: float
+    turn_360_sec: float
     provenance: Provenance
 
 

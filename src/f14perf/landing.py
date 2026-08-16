@@ -7,11 +7,14 @@ from .atmosphere import pressure_altitude_ft
 from .data import read_csv, require_columns
 from .interpolate import regular_grid_interpolate
 from .provenance import Method, Provenance, combine
-from .types import Environment, LandingResult, Runway
+from .types import Environment, LandingFuelReference, LandingResult, Runway
 from .weather import wind_components
 
 
 class LandingModel:
+    FIELD_LANDING_LIMIT_LB = 60_000.0
+    CARRIER_LANDING_LIMIT_LB = 54_000.0
+    USABLE_FUEL_LB = 20_000.0
     REQUIRED = {
         "flap_setting", "gross_weight_lbs", "pressure_alt_ft", "temp_f",
         "headwind_kt", "ground_roll_ft_unfactored",
@@ -91,4 +94,39 @@ class LandingModel:
             runway_margin_ft=round(margin),
             provenance=prov,
             warnings=warnings,
+        )
+
+    def fuel_reference(
+        self,
+        takeoff_weight_lb: float,
+        starting_fuel_lb: float,
+        expendable_credit_lb: float = 0.0,
+    ) -> LandingFuelReference:
+        retained_zfw = max(0.0, float(takeoff_weight_lb) - float(starting_fuel_lb))
+        credit = max(0.0, float(expendable_credit_lb))
+        expended_zfw = max(0.0, retained_zfw - credit)
+
+        def available(limit: float, zfw: float) -> float:
+            value = max(0.0, min(self.USABLE_FUEL_LB, limit - zfw))
+            return math.floor(value / 100.0) * 100.0
+
+        return LandingFuelReference(
+            field_limit_lb=self.FIELD_LANDING_LIMIT_LB,
+            carrier_limit_lb=self.CARRIER_LANDING_LIMIT_LB,
+            retained_zero_fuel_weight_lb=round(retained_zfw),
+            expendable_credit_lb=round(credit),
+            field_retained_fuel_lb=available(self.FIELD_LANDING_LIMIT_LB, retained_zfw),
+            field_expended_fuel_lb=available(self.FIELD_LANDING_LIMIT_LB, expended_zfw),
+            carrier_retained_fuel_lb=available(self.CARRIER_LANDING_LIMIT_LB, retained_zfw),
+            carrier_expended_fuel_lb=available(self.CARRIER_LANDING_LIMIT_LB, expended_zfw),
+            provenance=Provenance(
+                Method.ESTIMATED,
+                "F-14 landing gross-weight limits + entered mission weight",
+                "60,000 lb field and 54,000 lb carrier limits; selected-store expendable credit rounded down; results rounded down to 100 lb",
+                "Conservative quick reference; verify actual DCS gross weight before recovery",
+            ),
+            notes=[
+                "All-stores-retained values use takeoff gross weight minus starting fuel as retained zero-fuel weight.",
+                "Expended values credit only selected weapons with a defined conservative expendable weight. Tanks, pods, racks, adapters, and unknown stores remain retained.",
+            ],
         )

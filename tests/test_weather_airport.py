@@ -1,4 +1,7 @@
+import pytest
+
 from src.f14perf.airport import AirportDatabase
+from src.f14perf.atmosphere import atmosphere, cas_to_mach, mach_to_cas_kt
 from src.f14perf.weather import parse_metar, wind_components
 
 
@@ -23,3 +26,10 @@ def test_airport_slope_derivation(data_dir):
     assert round(r.slope_pct, 3) == 0.25
     assert r.toda_ft == 8200
     assert r.asda_ft == 8100
+
+
+def test_compressible_kias_mach_round_trip():
+    atm = atmosphere(34000)
+    kias = mach_to_cas_kt(0.718, atm["pressure_pa"])
+    assert 240 < kias < 270
+    assert cas_to_mach(kias, atm["pressure_pa"]) == pytest.approx(0.718, abs=0.001)

@@ -28,18 +28,19 @@ class MissionPlanner:
         bingo_lb: float,
         joker_margin_lb: float,
         isa_delta_c: float = 0.0,
-        climb_strategy: str = "MOST_EFFICIENT",
+        climb_strategy: str = "MINIMUM_TIME",
     ) -> MissionCard:
         takeoff = self.takeoff.select(takeoff_inputs)
+        cruise = self.cruise.optimum(takeoff_inputs.weight_lb, drag_index, isa_delta_c)
         climb_profile = self.climb.profile(
             takeoff_inputs.weight_lb,
             isa_delta_c=isa_delta_c,
             drag_index=drag_index,
             target_gradient_ft_nm=takeoff_inputs.climb_target_ft_nm,
+            end_alt_ft=int(cruise.optimum_altitude_ft),
             strategy=climb_strategy,
         )
         climb = climb_profile.points
-        cruise = self.cruise.optimum(takeoff_inputs.weight_lb, drag_index, isa_delta_c)
         landing = self.landing.calculate(
             landing_weight_lb,
             takeoff_inputs.environment,
@@ -61,7 +62,7 @@ class MissionPlanner:
                 "model": "F-14 EFB",
                 "climb_strategy": climb_profile.strategy,
                 "climb_profile_label": climb_profile.label,
-                "climb_time_to_10000_min": climb_profile.time_min,
-                "climb_fuel_to_10000_lb": climb_profile.fuel_burn_lb,
+                "climb_time_to_cruise_min": climb_profile.time_min,
+                "climb_fuel_to_cruise_lb": climb_profile.fuel_burn_lb,
             },
         )

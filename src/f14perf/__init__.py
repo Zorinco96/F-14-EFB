@@ -5,6 +5,7 @@ from .types import (
     EnergyResult,
     Environment,
     FuelPlan,
+    LandingFuelReference,
     LandingResult,
     MissionCard,
     Runway,
@@ -14,5 +15,5 @@ from .types import (
 
 __all__ = [
     "Environment", "Runway", "TakeoffInputs", "TakeoffResult", "ClimbPoint", "ClimbProfile",
-    "LandingResult", "CruiseResult", "EnergyResult", "FuelPlan", "MissionCard",
+    "LandingResult", "LandingFuelReference", "CruiseResult", "EnergyResult", "FuelPlan", "MissionCard",
 ]

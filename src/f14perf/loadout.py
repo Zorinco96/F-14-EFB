@@ -7,18 +7,21 @@ from dataclasses import dataclass
 class StoreDefinition:
     label: str
     model_drag_units: float
+    expendable_credit_lb: float = 0.0
 
 
 STORE_CATALOG = {
     "EMPTY": StoreDefinition("Empty", 0.0),
-    "AIM9": StoreDefinition("AIM-9", 1.0),
-    "AIM9L": StoreDefinition("AIM-9L", 1.0),
-    "AIM9M": StoreDefinition("AIM-9M", 1.0),
-    "AIM7F": StoreDefinition("AIM-7F", 2.0),
-    "AIM7M": StoreDefinition("AIM-7M", 2.0),
-    "AIM54A47": StoreDefinition("AIM-54A Mk 47", 4.0),
-    "AIM54A60": StoreDefinition("AIM-54A Mk 60", 4.0),
-    "AIM54C47": StoreDefinition("AIM-54C Mk 47", 4.0),
+    # Credits are deliberately rounded down from nominal loaded-store weights.
+    # This keeps the all-expendables-expended landing-fuel reference cautious.
+    "AIM9": StoreDefinition("AIM-9", 1.0, 185.0),
+    "AIM9L": StoreDefinition("AIM-9L", 1.0, 185.0),
+    "AIM9M": StoreDefinition("AIM-9M", 1.0, 185.0),
+    "AIM7F": StoreDefinition("AIM-7F", 2.0, 500.0),
+    "AIM7M": StoreDefinition("AIM-7M", 2.0, 500.0),
+    "AIM54A47": StoreDefinition("AIM-54A Mk 47", 4.0, 985.0),
+    "AIM54A60": StoreDefinition("AIM-54A Mk 60", 4.0, 985.0),
+    "AIM54C47": StoreDefinition("AIM-54C Mk 47", 4.0, 985.0),
     "FPU1": StoreDefinition("FPU-1 external tank", 4.0),
     "LANTIRN": StoreDefinition("LANTIRN pod", 3.0),
     "TARPS": StoreDefinition("TARPS pod", 6.0),
@@ -26,8 +29,24 @@ STORE_CATALOG = {
     "TCTS": StoreDefinition("TCTS pod", 1.0),
     "LAU138": StoreDefinition("LAU-138 chaff adapter", 0.5),
     "SMOKE": StoreDefinition("Smokewinder", 1.0),
+    "MK82": StoreDefinition("Mk-82", 2.0, 500.0),
+    "MK83": StoreDefinition("Mk-83", 3.0, 1_000.0),
+    "MK84": StoreDefinition("Mk-84", 4.0, 2_000.0),
+    "GBU10": StoreDefinition("GBU-10", 5.0, 2_000.0),
+    "GBU12": StoreDefinition("GBU-12", 3.0, 550.0),
+    "GBU16": StoreDefinition("GBU-16", 4.0, 1_000.0),
+    "GBU24": StoreDefinition("GBU-24E/B", 6.0, 2_000.0),
+    "GBU31": StoreDefinition("GBU-31", 5.0, 2_000.0),
+    "GBU38": StoreDefinition("GBU-38", 3.0, 500.0),
+    "CBU99": StoreDefinition("Mk-20 Rockeye / CBU-99", 3.0, 490.0),
     "OTHER_AG": StoreDefinition("Other air-to-ground store/rack", 4.0),
 }
+
+
+TUNNEL_AG_OPTIONS = (
+    "MK82", "MK83", "MK84", "GBU10", "GBU12", "GBU16", "GBU24",
+    "GBU31", "GBU38", "CBU99", "OTHER_AG",
+)
 
 
 STATION_OPTIONS = {
@@ -37,10 +56,10 @@ STATION_OPTIONS = {
         "AIM54A47", "AIM54A60", "AIM54C47", "TCTS", "OTHER_AG",
     ),
     "2": ("EMPTY", "FPU1"),
-    "3": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "OTHER_AG"),
-    "4": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "OTHER_AG"),
-    "5": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "TARPS", "OTHER_AG"),
-    "6": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "ALQ167", "OTHER_AG"),
+    "3": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", *TUNNEL_AG_OPTIONS),
+    "4": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", *TUNNEL_AG_OPTIONS),
+    "5": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "TARPS", *TUNNEL_AG_OPTIONS),
+    "6": ("EMPTY", "AIM7F", "AIM7M", "AIM54A47", "AIM54A60", "AIM54C47", "ALQ167", *TUNNEL_AG_OPTIONS),
     "7": ("EMPTY", "FPU1"),
     "8B": (
         "EMPTY", "AIM9", "AIM9L", "AIM9M", "AIM7F", "AIM7M",
@@ -84,6 +103,13 @@ class Loadout:
     def model_drag_index(self) -> float:
         return sum(
             STORE_CATALOG[store].model_drag_units
+            for store in self.normalized_stations.values()
+        )
+
+    @property
+    def expendable_credit_weight_lb(self) -> float:
+        return sum(
+            STORE_CATALOG[store].expendable_credit_lb
             for store in self.normalized_stations.values()
         )
 

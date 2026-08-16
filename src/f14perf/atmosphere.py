@@ -54,3 +54,40 @@ def tas_to_ias_kt(tas_kt: float, sigma: float) -> float:
 
 def mach_from_tas(tas_kt: float, speed_of_sound_kt: float) -> float:
     return float(tas_kt) / max(1.0, float(speed_of_sound_kt))
+
+
+def mach_to_cas_kt(mach: float, pressure_pa: float) -> float:
+    """Subsonic calibrated airspeed from Mach and static pressure."""
+    m = max(0.0, float(mach))
+    pressure = max(1.0, float(pressure_pa))
+    impact_pressure = pressure * (
+        (1.0 + (GAMMA - 1.0) / 2.0 * m * m) ** (GAMMA / (GAMMA - 1.0)) - 1.0
+    )
+    sea_level_a_mps = math.sqrt(GAMMA * R * T0_K)
+    cas_mps = sea_level_a_mps * math.sqrt(
+        2.0
+        / (GAMMA - 1.0)
+        * ((impact_pressure / P0_PA + 1.0) ** ((GAMMA - 1.0) / GAMMA) - 1.0)
+    )
+    return cas_mps * KT_PER_MPS
+
+
+def cas_to_mach(cas_kt: float, pressure_pa: float) -> float:
+    """Subsonic Mach from calibrated airspeed and static pressure."""
+    sea_level_a_mps = math.sqrt(GAMMA * R * T0_K)
+    cas_mps = max(0.0, float(cas_kt)) / KT_PER_MPS
+    impact_pressure = P0_PA * (
+        (1.0 + (GAMMA - 1.0) / 2.0 * (cas_mps / sea_level_a_mps) ** 2)
+        ** (GAMMA / (GAMMA - 1.0))
+        - 1.0
+    )
+    pressure = max(1.0, float(pressure_pa))
+    return math.sqrt(
+        2.0
+        / (GAMMA - 1.0)
+        * ((impact_pressure / pressure + 1.0) ** ((GAMMA - 1.0) / GAMMA) - 1.0)
+    )
+
+
+def cas_to_tas_kt(cas_kt: float, pressure_pa: float, speed_of_sound_kt: float) -> float:
+    return cas_to_mach(cas_kt, pressure_pa) * float(speed_of_sound_kt)

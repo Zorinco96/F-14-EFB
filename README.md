@@ -25,6 +25,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - wind component calculation
 - UP / MANEUVER / FULL / AUTO flap configuration
 - automatic reduced-thrust search
+- MIL (100% command) default; reduced-thrust AUTO remains selectable for DCS test planning
 - RPM policy floors:
   - UP 85%
   - MANEUVER 90%
@@ -37,10 +38,10 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - separate commanded RPM and observed EIG RPM/FF references, using Batumi static and local Henderson +40 C observations
 - flap-compensated takeoff pitch-trim setting established before the roll, targeting an easy rotation at V2 without excessive backpressure
 - separate OEI climb target of V2+15, gear up, with MILITARY thrust on the operating engine
-- explicit warning that trim does not command or guarantee climb airspeed
+- explicit note that trim does not command or guarantee climb airspeed
 - accelerate-stop distance
 - accelerate-go distance
-- 10% default runway planning factor
+- 15% default runway planning factor
 - AEO initial climb gate, default 300 ft/NM
 - OEI climb advisory
 - direct DCS gross-weight input
@@ -51,23 +52,21 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 
 ### Climb
 
-- named Most Efficient and Minimum Time (MIL) profiles from 1,000 to 10,000 ft
-- selectable mission-card climb strategy
-- side-by-side modeled time and fuel comparison
-- 190–250 KIAS search range
-- Most Efficient: lowest 85–100% dry RPM meeting the gradient gate, then best fuel-per-foot speed
-- Minimum Time: 100% dry MIL and maximum modeled rate of climb
-- climb gradient
-- rate of climb
-- fuel flow
-- store-derived drag and ISA-deviation sensitivity
+- conservative MIL and 95% dry mission-planning schedules to the selected cruise flight level
+- 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover
+- guarded rate-of-climb and time allowances that are not presented as maximum aircraft capability
+- conservative two-engine climb fuel burn
+- fuel flow displayed in PPH per engine
+- weight, stores, and ISA-deviation planning allowances
+- the previous low-order climb optimizer was removed after it produced non-credible 18,000 to 27,000 fpm results
 
 ### Cruise
 
 - optimum cruise altitude from the legacy weight/drag-index table
-- optimum Mach from the table
+- altitude rounded to the nearest usable 1,000 ft flight level
+- KIAS and Mach at the rounded flight level
+- estimated RPM and fuel flow in PPH per engine
 - estimated TAS
-- estimated fuel flow
 - estimated specific range
 - estimated endurance
 
@@ -80,15 +79,18 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - runway planning factor
 - on-speed reference of 15 AOA units
 - estimated on-speed IAS
-- carrier-weight warning at 54,000 lb when carrier mode is used programmatically
+- 60,000 lb field and 54,000 lb carrier landing references
+- maximum landing fuel with all stores retained
+- maximum landing fuel with selected expendable stores expended
+- conservative expendable-store credits derived from the DCS-style station loadout
 
-### Energy / maneuvering
+### Maneuvering
 
-- specific excess power
-- instantaneous G / turn rate / radius
-- sustained G / turn rate / radius
-- MIL or AB power
-- user-selected planning G limit
+- ideal coordinated level-turn rate, radius, and time
+- KIAS, TAS, and Mach conversion at the selected altitude
+- user-selected planning G input
+- no Ps, lift-limit, instantaneous-capability, or sustained-turn claim
+- the previous low-order energy model is no longer used operationally
 
 ### Mission card / fuel
 
@@ -98,6 +100,8 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - landing reference
 - phase-based mission fuel estimate
 - JOKER / BINGO tracking
+- consolidated mission notes instead of repeated warning banners
+- downloadable 768 x 1024 DCS kneeboard PNG
 
 ## Source hierarchy
 

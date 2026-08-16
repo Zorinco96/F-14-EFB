@@ -173,8 +173,8 @@ class TakeoffModel:
         atm = atmosphere(pa_ft, oat_c)
         tas = ias_to_tas_kt(vr_kt, atm["sigma"])
         mach = mach_from_tas(tas, atm["speed_of_sound_kt"])
-        mil = self.engine.total(pa_ft, mach, mode="MIL", rpm_pct=100.0, oat_c=oat_c)
-        selected = self.engine.total(pa_ft, mach, mode="MIL", rpm_pct=rpm_pct, oat_c=oat_c)
+        mil = self.engine.point(pa_ft, mach, mode="MIL", rpm_pct=100.0, oat_c=oat_c)
+        selected = self.engine.point(pa_ft, mach, mode="MIL", rpm_pct=rpm_pct, oat_c=oat_c)
         ratio = max(0.20, selected.thrust_lbf_per_engine / max(1.0, mil.thrust_lbf_per_engine))
         out = dict(base)
         out["agd_ft"] *= ratio ** -1.18
@@ -207,8 +207,8 @@ class TakeoffModel:
         atm = atmosphere(pa_ft, oat_c)
         tas = ias_to_tas_kt(v2_kt, atm["sigma"])
         mach = mach_from_tas(tas, atm["speed_of_sound_kt"])
-        mil = self.engine.total(pa_ft, mach, mode="MIL", rpm_pct=100.0, oat_c=oat_c)
-        sel = self.engine.total(pa_ft, mach, mode="MIL", rpm_pct=rpm_pct, oat_c=oat_c)
+        mil = self.engine.point(pa_ft, mach, mode="MIL", rpm_pct=100.0, oat_c=oat_c)
+        sel = self.engine.point(pa_ft, mach, mode="MIL", rpm_pct=rpm_pct, oat_c=oat_c)
         ratio = max(0.2, sel.thrust_lbf_per_engine / max(1.0, mil.thrust_lbf_per_engine))
         gradient = CLIMB_ANCHOR_FT_NM[flaps] * (65000.0 / weight_lb) * ratio ** 0.55 * atm["sigma"] ** 0.10
         oei = max(0.0, gradient * 0.48 - 35.0)

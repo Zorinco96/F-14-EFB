@@ -119,30 +119,23 @@ OEI climb is shown separately as an advisory estimate.
 
 ## Climb schedule
 
-From 1,000 to 10,000 ft, the climb model provides two named profiles. Both search 190 to 250 KIAS and retain the 250 KIAS ceiling through 10,000 ft.
+The August 2026 audit found that the previous excess-thrust optimizer produced approximately 18,000 to 27,000 fpm in common mission conditions and only a few hundred pounds of climb fuel. Those outputs were not credible and are no longer used operationally.
 
-### Most Efficient
+The revised model provides two guarded planning schedules to the rounded optimum cruise flight level:
 
-The optimizer searches upward from 85% dry RPM. At each altitude it selects the lowest RPM that satisfies the requested climb-gradient gate, then chooses the speed with the lowest modeled fuel flow per foot climbed at that power. This preserves the project’s minimum-required-thrust economy policy. It does not assert that the result is the absolute minimum total fuel to altitude.
+- MIL climb planning at 100% dry RPM
+- conservative dry planning at 95% RPM
 
-### Minimum Time (MIL)
-
-The optimizer fixes power at 100% dry MIL and selects the speed with the highest modeled rate of climb at each altitude. Afterburner is not included in this profile.
+Both use 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover. Rate of climb is a deliberately conservative planning allowance adjusted for gross weight, positive ISA deviation, and the selected store-drag allowance. It is not a prediction of maximum climb capability.
 
 Each profile reports:
 
-- IAS, TAS, RPM, rate of climb, gradient, and total fuel flow by altitude
-- modeled elapsed time to 10,000 ft
-- modeled fuel burned to 10,000 ft
+- IAS, TAS, RPM, planning rate of climb, gradient, and fuel flow per engine by altitude
+- guarded elapsed time to cruise altitude
+- conservative two-engine fuel burned to cruise altitude
 - the number of altitude segments that cannot meet the selected gradient gate
 
-The model uses:
-
-- F110 legacy engine deck
-- ISA atmosphere with ISA deviation
-- low-order clean drag polar
-
-Both schedules and their comparison are ESTIMATED DCS planning products. They are intended for relative strategy selection and are not released F-14B climb charts.
+The legacy F110 deck supplies only the per-engine fuel-flow estimate. The low-order F-14 aerodynamic polar is no longer used to predict operational climb rate. Both schedules are ESTIMATED DCS planning products and are biased toward time and fuel margin.
 
 ## Landing
 
@@ -150,31 +143,41 @@ Landing ground roll uses direct/interpolated values from `f14_landing_natops_ful
 
 On-speed AOA is 15 units per current Heatblur cockpit documentation. On-speed IAS is an explicit weight-scaled estimate and is labeled as such.
 
+Landing fuel quick-reference calculations use:
+
+- 60,000 lb maximum field landing gross weight
+- 54,000 lb maximum carrier/FCLP landing gross weight
+- entered takeoff gross weight minus starting fuel as retained zero-fuel weight
+- selected expendable-store credits rounded down from nominal store weights
+- roughly 20,000 lb maximum usable fuel
+
+Maximum fuel values are rounded down to the nearest 100 lb. Tanks, pods, racks, adapters, and unclassified stores remain in retained weight.
+
 ## Cruise
 
-Optimum altitude and Mach use the legacy cruise table.
+Optimum altitude and Mach use the legacy cruise table. Raw altitude is rounded to the nearest 1,000 ft usable flight level before the display condition is calculated.
 
-The low-order aerodynamic model determines required thrust at the table condition. The F110 deck is then searched for the lowest modeled dry RPM that meets drag. Fuel flow, specific range, and endurance are therefore estimates.
+The low-order aerodynamic model determines required thrust at the rounded flight level. The F110 deck is then searched for the lowest modeled dry RPM that meets drag. The UI reports KIAS, Mach, RPM, and fuel flow per engine. Specific range and endurance use the two-engine aircraft total internally and remain estimates.
 
-## Energy maneuverability
+## Maneuver geometry
 
-The energy model calculates:
+The audit found that specific excess power and sustained-turn outputs depended on the unvalidated low-order F-14 polar and therefore carried more precision than the source data supported. Those outputs were removed from the operational interface.
 
-- specific excess power
-- lift-limited instantaneous G
-- instantaneous turn rate/radius
-- thrust-limited sustained G
-- sustained turn rate/radius
+The revised maneuver section calculates only ideal coordinated level-turn geometry from selected KIAS, altitude, and planning G:
 
-The user supplies a planning G limit. V3 does not assert that default as a structural NATOPS limit.
+- TAS and Mach
+- turn rate
+- turn radius
+- 180-degree and 360-degree turn time
+
+The user supplies planning G. The model does not assert that the selected G is aerodynamically available, sustainable, or structurally permitted.
 
 ## Fuel
 
 Mission fuel is phase-based:
 
 - taxi/takeoff allowance
-- integrated 1,000–10,000 ft climb schedule
-- estimated continuation climb to optimum cruise altitude
+- integrated conservative climb schedule to the rounded cruise flight level
 - cruise fuel from modeled fuel flow and route distance
 - descent/approach allowance
 

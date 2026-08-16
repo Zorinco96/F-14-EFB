@@ -18,6 +18,7 @@ def test_two_tanks_two_aim9_preset_matches_dcs_stations():
     assert loadout.normalized_stations["7"] == "FPU1"
     assert loadout.normalized_stations["8A"] == "AIM9"
     assert loadout.model_drag_index == 10
+    assert loadout.expendable_credit_weight_lb == 370
 
 
 def test_station_store_compatibility_is_enforced():

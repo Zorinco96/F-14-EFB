@@ -16,6 +16,12 @@ Relevant sections include:
 - Pilot Left Instrument Panel
 - F-14B(U) Weapons / Loadout overview
 
+The Heatblur fuel-system documentation gives roughly 20,000 lb usable fuel. The F-14B(U) loadout documentation identifies 54,000 lb as the maximum carrier landing weight used for trap-fuel planning.
+
+### F-14 gross-weight reference
+
+The NAVAIR F-14D flight-manual gross-weight quick-reference lists 60,000 lb for field landing and 54,000 lb for carrier/FCLP landing. F-14 EFB uses these as DCS planning limits for the F-14B(U) recovery quick reference. The app rounds calculated maximum fuel down to 100 lb and still requires the user to verify actual DCS gross weight.
+
 ## NASA primary research
 
 NASA Technical Reports Server:

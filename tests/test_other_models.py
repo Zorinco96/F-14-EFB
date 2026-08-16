@@ -4,6 +4,7 @@ from src.f14perf.climb import ClimbModel
 from src.f14perf.cruise import CruiseModel
 from src.f14perf.energy import EnergyModel
 from src.f14perf.fuel import FuelModel
+from src.f14perf.kneeboard import render_kneeboard_png
 from src.f14perf.landing import LandingModel
 from src.f14perf.mission import MissionPlanner
 from src.f14perf.types import Environment, Runway, TakeoffInputs
@@ -20,8 +21,8 @@ def test_named_climb_profiles_are_distinct(data_dir):
     efficient = profiles["MOST_EFFICIENT"]
     minimum_time = profiles["MINIMUM_TIME"]
 
-    assert efficient.label == "Most Efficient"
-    assert minimum_time.label == "Minimum Time (MIL)"
+    assert efficient.label == "Conservative dry planning"
+    assert minimum_time.label == "MIL climb planning"
     assert len(efficient.points) == len(minimum_time.points) == 10
     assert efficient.altitude_gain_ft == minimum_time.altitude_gain_ft == 10000
     assert efficient.time_min > minimum_time.time_min > 0
@@ -30,6 +31,8 @@ def test_named_climb_profiles_are_distinct(data_dir):
     assert any(point.rpm_pct < 100 for point in efficient.points)
     assert all(point.rpm_pct == 100 for point in minimum_time.points)
     assert max(point.ias_kt for point in efficient.points + minimum_time.points) <= 250
+    assert max(point.roc_fpm for point in efficient.points + minimum_time.points) <= 3500
+    assert all(point.fuel_flow_pph_per_engine > 0 for point in efficient.points)
 
 
 def test_unknown_climb_strategy_is_rejected(data_dir):
@@ -39,9 +42,13 @@ def test_unknown_climb_strategy_is_rejected(data_dir):
 
 def test_cruise_table_point(data_dir):
     c = CruiseModel(data_dir).optimum(65000, 0)
-    assert c.optimum_altitude_ft == 33900
+    assert c.optimum_altitude_ft == 34000
+    assert c.flight_level == 340
     assert c.optimum_mach == 0.718
-    assert c.fuel_flow_pph_total > 0
+    assert c.optimum_ias_kt > 0
+    assert c.rpm_pct > 0
+    assert c.fuel_flow_pph_per_engine > 0
+    assert c.fuel_flow_pph_total == c.fuel_flow_pph_per_engine * 2
 
 
 def test_landing_table_point(data_dir):
@@ -54,9 +61,10 @@ def test_landing_table_point(data_dir):
 
 def test_energy_model_finite(data_dir):
     e = EnergyModel(data_dir).calculate(60000, 10000, 350)
-    assert e.instantaneous_g >= 1
-    assert e.sustained_g >= 1
-    assert e.instantaneous_turn_rate_dps >= 0
+    assert e.planning_g >= 1
+    assert e.turn_rate_dps > 0
+    assert e.turn_radius_ft > 0
+    assert e.turn_360_sec == pytest.approx(e.turn_180_sec * 2, abs=0.2)
 
 
 def test_fuel_plan(data_dir):
@@ -87,7 +95,30 @@ def test_mission_card_retains_selected_climb_strategy(data_dir):
         climb_strategy="MINIMUM_TIME",
     )
     assert card.metadata["climb_strategy"] == "MINIMUM_TIME"
-    assert card.metadata["climb_profile_label"] == "Minimum Time (MIL)"
-    assert card.metadata["climb_time_to_10000_min"] > 0
-    assert card.metadata["climb_fuel_to_10000_lb"] > 0
+    assert card.metadata["climb_profile_label"] == "MIL climb planning"
+    assert card.metadata["climb_time_to_cruise_min"] > 0
+    assert card.metadata["climb_fuel_to_cruise_lb"] > 0
     assert all(point.rpm_pct == 100 for point in card.climb)
+    assert card.climb[-1].altitude_ft == card.cruise.optimum_altitude_ft
+
+
+def test_landing_fuel_reference_is_rounded_down_and_conservative(data_dir):
+    reference = LandingModel(data_dir).fuel_reference(
+        takeoff_weight_lb=62000,
+        starting_fuel_lb=16000,
+        expendable_credit_lb=370,
+    )
+    assert reference.field_retained_fuel_lb == 14000
+    assert reference.carrier_retained_fuel_lb == 8000
+    assert reference.field_expended_fuel_lb == 14300
+    assert reference.carrier_expended_fuel_lb == 8300
+
+
+def test_kneeboard_renderer_returns_dcs_sized_png():
+    payload = render_kneeboard_png(
+        "vTF-77 Test",
+        "F-14B(U)",
+        [("Takeoff", ["V1 140 | VR 150 | V2 160", "TRIM 6.0 ANU"])],
+    )
+    assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+    assert len(payload) > 1000
