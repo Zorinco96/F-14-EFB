@@ -211,10 +211,15 @@ with takeoff_tab:
     c4.metric("Vfs", f"{takeoff.vfs_kt:.0f} kt")
     st.caption(f"Vs reference: {takeoff.vs_kt:.0f} KIAS")
     t1, t2, t3 = st.columns(3)
+    trim_delta = (
+        f"DCS BAND {takeoff.stabilizer_trim_band_anu[0]:.1f}-{takeoff.stabilizer_trim_band_anu[1]:.1f}"
+        if takeoff.stabilizer_trim_band_anu
+        else "SET BEFORE ROLL"
+    )
     t1.metric(
         "Takeoff pitch trim",
         f"{takeoff.stabilizer_trim_anu:.1f} ANU",
-        "SET BEFORE ROLL",
+        trim_delta,
     )
     t2.metric(
         "OEI climb speed",
@@ -337,7 +342,7 @@ with mission_tab:
     mc3.metric("Engine target", f"{takeoff.rpm_pct:.0f}% N2 / {takeoff.fuel_flow_pph_per_engine:,.0f} FF")
     mc4.metric("AEO climb", f"{takeoff.climb_gradient_ft_nm:.0f} ft/NM")
     mt1, mt2, mt3 = st.columns(3)
-    mt1.metric("Takeoff trim", f"{takeoff.stabilizer_trim_anu:.1f} ANU", "SET BEFORE ROLL")
+    mt1.metric("Takeoff trim", f"{takeoff.stabilizer_trim_anu:.1f} ANU", trim_delta)
     mt2.metric("OEI speed", f"{takeoff.oei_climb_speed_kt:.0f} KIAS", "V2 + 15")
     mt3.metric("OEI configuration", "GEAR UP / MIL", "OPERATING ENGINE")
     st.caption(takeoff.stabilizer_trim_note)

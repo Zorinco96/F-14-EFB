@@ -103,12 +103,15 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
 
 def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):
     model = TakeoffModel(data_dir)
-    expected_trim = {"UP": 3.0, "MANEUVER": 2.1, "FULL": 0.0}
+    expected_trim = {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0}
     for weight_lb in (40000, 65000, 76000):
         base = baseline()
         inputs = TakeoffInputs(weight_lb, base.environment, base.runway)
         for flaps in ("UP", "MANEUVER", "FULL"):
             result = model.calculate(inputs, flaps, 100)
             assert result.stabilizer_trim_anu == expected_trim[flaps]
+            assert result.stabilizer_trim_band_anu == (
+                (5.0, 7.0) if flaps == "MANEUVER" else None
+            )
             assert result.oei_climb_speed_kt == result.v2_kt + 15
             assert "easy rotation at V2" in result.stabilizer_trim_note

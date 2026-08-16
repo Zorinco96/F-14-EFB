@@ -94,7 +94,7 @@ At 55,000, 65,000, and 75,000 lb, test each takeoff flap configuration on a stan
 7. Record distance, height, actual IAS, climb gradient, yaw-control margin, pitch-trim command, and stabilator position if available.
 8. Repeat each condition three times.
 
-Test the initial estimated schedule of 3.0 ANU UP, 2.1 ANU MANEUVER, and 0.0 ANU FULL. The rotation acceptance criterion is a smooth rotation initiated at V2 with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record any repeatable correction by flap configuration and center of gravity. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
+Use 6.0 ANU as the MANEUVER nominal value and treat 5.0 to 7.0 ANU as the prior DCS-observed band. Retain 3.0 ANU UP and 0.0 ANU FULL as provisional starting points. The rotation acceptance criterion is a smooth rotation initiated at V2 with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record the best setting and acceptable band by flap configuration and center of gravity. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
 
 ## Priority 5: climb
 

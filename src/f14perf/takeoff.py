@@ -29,8 +29,8 @@ MANEUVER_ANCHOR = {
     "agd_ft": 2456.0,
 }
 CLIMB_ANCHOR_FT_NM = {"UP": 430.0, "MANEUVER": 455.0, "FULL": 410.0}
-FLAP_DEFLECTION_DEG = {"UP": 0.0, "MANEUVER": 10.0, "FULL": 35.0}
-ROTATION_STABILATOR_REFERENCE_DEG = 3.0
+TAKEOFF_TRIM_SCHEDULE_ANU = {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0}
+MANEUVER_TRIM_TEST_BAND_ANU = (5.0, 7.0)
 
 
 class TakeoffModel:
@@ -136,10 +136,8 @@ class TakeoffModel:
 
     @staticmethod
     def _takeoff_trim_anu(flaps: str) -> float:
-        """Estimate pre-roll trim for a common 3-degree tail-up rotation reference."""
-        flap_deg = FLAP_DEFLECTION_DEG[flaps]
-        integrated_trim_deg = ROTATION_STABILATOR_REFERENCE_DEG * flap_deg / FLAP_DEFLECTION_DEG["FULL"]
-        return round(max(0.0, ROTATION_STABILATOR_REFERENCE_DEG - integrated_trim_deg), 1)
+        """Return the explicit pre-roll trim schedule for the selected flap setting."""
+        return TAKEOFF_TRIM_SCHEDULE_ANU[flaps]
 
     @staticmethod
     def _surface_slope_factors(headwind_kt: float, vr_kt: float, slope_pct: float, condition: str) -> tuple[float, float, list[str]]:
@@ -335,10 +333,19 @@ class TakeoffModel:
             fuel_flow_pph_per_engine=round(eig_reference.fuel_flow_pph_per_engine),
             fuel_flow_pph_total=round(eig_reference.fuel_flow_pph_per_engine * 2.0),
             stabilizer_trim_anu=takeoff_trim_anu,
+            stabilizer_trim_band_anu=(
+                MANEUVER_TRIM_TEST_BAND_ANU if flaps == "MANEUVER" else None
+            ),
             oei_climb_speed_kt=round(oei_climb_speed_kt),
             stabilizer_trim_note=(
                 f"Set pitch trim {takeoff_trim_anu:.1f} ANU before commencing the takeoff roll. "
-                "This estimated flap-compensated setting targets an easy rotation at V2 without excessive backpressure. "
+                + (
+                    "The 6.0 ANU MANEUVER value is the midpoint of the DCS-observed 5.0 to 7.0 ANU band "
+                    "and targets an easy rotation at V2 without excessive backpressure. "
+                    if flaps == "MANEUVER"
+                    else "This provisional setting targets an easy rotation at V2 without excessive backpressure. "
+                )
+                +
                 "For an engine failure after rotation, establish gear up, fly V2+15, "
                 "and use MILITARY thrust on the operating engine. Trim as required after liftoff."
             ),
@@ -352,7 +359,7 @@ class TakeoffModel:
                 "AUTO never selects afterburner for takeoff.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",
-                "The pre-roll trim schedule is an engineering estimate pending controlled DCS validation across center-of-gravity conditions.",
+                "MANEUVER trim is DCS-observation-calibrated; UP and FULL remain provisional pending controlled tests across center-of-gravity conditions.",
                 "FULL uses the legacy table's flap_deg=40 code while the cockpit configuration is displayed as FULL.",
             ],
         )

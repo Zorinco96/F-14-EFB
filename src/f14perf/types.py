@@ -70,6 +70,7 @@ class TakeoffResult:
     fuel_flow_pph_per_engine: float = 0.0
     fuel_flow_pph_total: float = 0.0
     stabilizer_trim_anu: Optional[float] = None
+    stabilizer_trim_band_anu: Optional[tuple[float, float]] = None
     oei_climb_speed_kt: Optional[float] = None
     stabilizer_trim_note: str = "Takeoff pitch-trim setting is not modeled."
     warnings: list[str] = field(default_factory=list)

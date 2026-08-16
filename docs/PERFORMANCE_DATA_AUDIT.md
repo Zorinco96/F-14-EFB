@@ -76,7 +76,7 @@ The legacy V-speed table includes V2 and Vfs versus gross weight, but its absolu
 
 ### 5. Pre-roll trim and OEI climb reference
 
-The current Heatblur post-start procedure specifies trim 000 before takeoff and documents approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check. F-14 EFB uses that response as an engineering anchor and estimates a flap-compensated pre-roll schedule of 3.0 ANU UP, 2.1 ANU MANEUVER, and 0.0 ANU FULL. The schedule targets easy rotation at V2 without excessive backpressure but remains unvalidated across center-of-gravity conditions. The OEI climb target is separately defined as V2+15, gear up, with MILITARY thrust on the operating engine. No claim is made that pitch trim automatically commands or holds that airspeed.
+The current Heatblur post-start procedure specifies trim 000 before takeoff and documents approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check. Prior user DCS tests indicate approximately 5.0 to 7.0 ANU for a maneuver-flap takeoff. F-14 EFB therefore uses 6.0 ANU as the MANEUVER nominal value and displays the observed band. UP remains 3.0 ANU and FULL remains 0.0 ANU as provisional settings pending equivalent testing. The schedule targets easy rotation at V2 without excessive backpressure and still requires validation across center-of-gravity conditions. The OEI climb target is separately defined as V2+15, gear up, with MILITARY thrust on the operating engine. No claim is made that pitch trim automatically commands or holds that airspeed.
 
 ### 6. Landing grid: `data/f14_landing_natops_full.csv`
 
