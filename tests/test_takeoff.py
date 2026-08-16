@@ -115,3 +115,32 @@ def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):
             )
             assert result.oei_climb_speed_kt == result.v2_kt + 15
             assert "easy rotation at V2" in result.stabilizer_trim_note
+
+
+def test_external_store_takeoff_is_marked_unvalidated(data_dir):
+    result = TakeoffModel(data_dir).calculate(
+        baseline(takeoff_loadout="STA 1A: AIM-9; STA 2: FPU-1 external tank; STA 7: FPU-1 external tank; STA 8A: AIM-9"),
+        "MANEUVER",
+        100,
+    )
+    assert not result.takeoff_data_valid
+    assert "FPU-1 external tank" in result.takeoff_loadout
+    assert any("External-store takeoff drag is not modeled" in w for w in result.warnings)
+
+
+def test_hot_high_reduced_thrust_is_marked_unvalidated(data_dir):
+    environment = Environment(field_elevation_ft=2492, oat_c=40, qnh_inhg=29.92)
+    runway = Runway(
+        heading_deg=0,
+        tora_ft=8000,
+        toda_ft=8000,
+        asda_ft=8000,
+        elevation_ft=2492,
+    )
+    result = TakeoffModel(data_dir).calculate(
+        baseline(environment=environment, runway=runway),
+        "UP",
+        98,
+    )
+    assert not result.takeoff_data_valid
+    assert any("Hot/high reduced-thrust" in w for w in result.warnings)

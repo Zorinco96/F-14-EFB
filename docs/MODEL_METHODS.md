@@ -83,15 +83,21 @@ The fuel-flow knots are controlled DCS observations near sea level. A 100% MIL c
 
 The mission-card standard requires a stabilator trim setting established before the takeoff roll and a separate OEI climb reference. The [Heatblur post-start checklist](https://f14.manuals.heatblur.se/f14ab/procedures/post_start.html) specifies trim 000 before takeoff. The same procedure identifies the integrated trim response to flap position and calls for approximately 3 degrees trailing-edge-up stabilizer during the full-flap control check.
 
-F-14 EFB uses an explicit configuration schedule. The MANEUVER setting is calibrated to the midpoint of the user's DCS-observed 5.0 to 7.0 ANU band. UP and FULL retain provisional settings pending equivalent testing. The EFB presents:
+F-14 EFB uses an explicit provisional configuration schedule. Recent loaded-aircraft tests show that the current schedule has not yet met the rotation-force acceptance criterion. The EFB currently presents:
 
 - UP takeoff pitch trim: `3.0 ANU`
-- MANEUVER takeoff pitch trim: `6.0 ANU` nominal, observed band `5.0-7.0 ANU`
+- MANEUVER takeoff pitch trim: `6.0 ANU`, with `5.0-7.0 ANU` shown only as a trial range
 - FULL takeoff pitch trim: `0.0 ANU`
 - OEI climb speed: `V2 + 15 KIAS`
 - OEI configuration: gear up, MILITARY thrust on the operating engine
 
-The pre-roll settings target an easy rotation at V2 without excessive backpressure. The MANEUVER value is DCS-observation-calibrated but still requires a controlled test matrix across center-of-gravity conditions. The other settings are engineering estimates, not a validated NATOPS schedule. Pitch trim does not command an airspeed and cannot guarantee V2+15 after an engine failure. The pilot must control pitch to acquire and maintain the displayed OEI climb speed, then trim as required after establishing the flight path.
+The pre-roll settings target an easy rotation at V2 without excessive backpressure. At 62,000 lb with two external tanks and two AIM-9s, the user found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy. The next 0.5-ANU test candidates are 5.5 UP and 7.0 MANEUVER, not validated operational values. All settings require a controlled matrix across center-of-gravity and loadout conditions. They are engineering estimates, not a validated NATOPS schedule. Pitch trim does not command an airspeed and cannot guarantee V2+15 after an engine failure. The pilot must control pitch to acquire and maintain the displayed OEI climb speed, then trim as required after establishing the flight path.
+
+## Takeoff stores and validation hold
+
+Takeoff gross weight captures store and fuel weight but does not capture aerodynamic drag. The current takeoff model does not apply the mission drag index or a store-specific drag increment to runway distance or climb. When external stores are selected, the app therefore labels the takeoff result `UNVALIDATED` and suppresses a GO determination. Hot/high reduced-thrust conditions are also held unvalidated because the static RPM-to-fuel-flow reference and reduced-thrust distance correction did not match the Henderson +40 C DCS tests. The app continues to display provisional values to support controlled calibration, but they are not presented as validated runway guidance.
+
+The pilot does not enter a drag index. The Streamlit UI provides loadout presets and a DCS-style station panel for stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. Gross weight remains a direct DCS input, so the app does not add store weight a second time. The station selections generate low-confidence internal model drag units for climb, cruise, and energy calculations. These units are engineering estimates, not a released F-14 drag-index table, and appear only as supporting model provenance rather than a user input.
 
 The absolute V2 values in the active configuration-specific takeoff model do not use the same baseline as the legacy `vspeeds.csv` table. V3 uses only the legacy Vfs-to-V2 spread and applies it to the active V2:
 

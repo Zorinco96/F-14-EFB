@@ -41,6 +41,7 @@ class TakeoffInputs:
     climb_target_ft_nm: float = 300.0
     headwind_credit_pct: float = 50.0
     tailwind_penalty_pct: float = 150.0
+    takeoff_loadout: str = "Clean"
 
 
 @dataclass
@@ -73,6 +74,8 @@ class TakeoffResult:
     stabilizer_trim_band_anu: Optional[tuple[float, float]] = None
     oei_climb_speed_kt: Optional[float] = None
     stabilizer_trim_note: str = "Takeoff pitch-trim setting is not modeled."
+    takeoff_loadout: str = "Clean"
+    takeoff_data_valid: bool = True
     warnings: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 

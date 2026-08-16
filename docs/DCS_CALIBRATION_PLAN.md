@@ -2,7 +2,7 @@
 
 ## Test discipline
 
-Change one variable at a time. Record DCS version, F-14 variant, map, runway, gross weight, fuel, stores/drag index, weather, flap configuration, RPM, and control technique.
+Change one variable at a time. Record DCS version, F-14 variant, map, runway, gross weight, fuel, station-by-station stores, weather, flap configuration, RPM, and control technique. The test pilot does not need to provide a drag index.
 
 Use the same control technique across repeated runs. Perform at least three runs for any point that will become a calibration anchor.
 
@@ -94,7 +94,7 @@ At 55,000, 65,000, and 75,000 lb, test each takeoff flap configuration on a stan
 7. Record distance, height, actual IAS, climb gradient, yaw-control margin, pitch-trim command, and stabilator position if available.
 8. Repeat each condition three times.
 
-Use 6.0 ANU as the MANEUVER nominal value and treat 5.0 to 7.0 ANU as the prior DCS-observed band. Retain 3.0 ANU UP and 0.0 ANU FULL as provisional starting points. The rotation acceptance criterion is a smooth rotation initiated at V2 with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record the best setting and acceptable band by flap configuration and center of gravity. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
+The current app schedule remains 6.0 ANU MANEUVER, 3.0 ANU UP, and 0.0 ANU FULL while testing continues. Do not treat the former 5.0 to 7.0 ANU MANEUVER range as an accepted band. In the latest 62,000 lb F-14B(U) test with two external tanks and two AIM-9s, 5.0 ANU UP was slightly heavy and 6.5 ANU MANEUVER was heavy. The next controlled candidates are 5.5 ANU UP and 7.0 ANU MANEUVER, changing only 0.5 ANU per run. The rotation acceptance criterion is a smooth rotation initiated at V2 with normal aft-stick pressure, no excessive backpressure, and no uncommanded pitch-up. Record the best setting and acceptable band by flap configuration, center of gravity, and loadout. Evaluate the separate transition to the V2+15 OEI climb condition after liftoff.
 
 ## Priority 5: climb
 
@@ -145,4 +145,6 @@ Then test headwind and wet-surface effects separately.
 
 Store every raw run, not only averages. Recommended columns:
 
-`date,dcs_version,variant,map,airport,runway,weight_lb,cg_pct_mac,drag_index,pa_ft,oat_c,wind_dir,wind_kt,condition,flaps,rpm_pct,v1_kt,vr_kt,v2_kt,vfs_kt,takeoff_trim_anu,oei_target_kt,trim_command_after_liftoff,stabilator_position,engine_failure_kt,decision,ground_distance_ft,height50_distance_ft,climb_gradient_ft_nm,roc_fpm,fuel_flow_left,fuel_flow_right,notes`
+`date,dcs_version,variant,map,airport,runway,weight_lb,cg_pct_mac,station_loadout,derived_model_drag_units,pa_ft,oat_c,wind_dir,wind_kt,condition,flaps,rpm_pct,v1_kt,vr_kt,v2_kt,vfs_kt,takeoff_trim_anu,oei_target_kt,trim_command_after_liftoff,stabilator_position,engine_failure_kt,decision,ground_distance_ft,height50_distance_ft,climb_gradient_ft_nm,roc_fpm,fuel_flow_left,fuel_flow_right,notes`
+
+The maintained raw run log is `data/dcs_takeoff_test_log.csv`. Blank fields mean not reported, not zero. Derived distances are explicitly labeled and app-calculated values must never be entered as measured DCS results.

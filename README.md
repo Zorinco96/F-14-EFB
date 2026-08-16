@@ -43,6 +43,9 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - 10% default runway planning factor
 - AEO initial climb gate, default 300 ft/NM
 - OEI climb advisory
+- direct DCS gross-weight input
+- DCS-style station loadout or loadout preset; internal drag units are derived automatically
+- validation hold for external-store and hot/high reduced-thrust takeoff conditions that are not yet calibrated
 - explicit provenance/confidence output
 
 ### Climb
@@ -56,7 +59,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - climb gradient
 - rate of climb
 - fuel flow
-- drag-index and ISA-deviation sensitivity
+- store-derived drag and ISA-deviation sensitivity
 
 ### Cruise
 
@@ -84,7 +87,6 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - instantaneous G / turn rate / radius
 - sustained G / turn rate / radius
 - MIL or AB power
-- drag index
 - user-selected planning G limit
 
 ### Mission card / fuel

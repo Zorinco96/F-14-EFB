@@ -228,6 +228,7 @@ class TakeoffModel:
             raise ValueError("F-14B takeoff weight must be between 40,000 and 76,000 lb for this model.")
         if not 70 <= rpm_pct <= 100:
             raise ValueError("Takeoff RPM must be between 70 and 100 percent.")
+        loadout_label = inputs.takeoff_loadout.strip() or "Clean"
 
         field_elev = inputs.runway.elevation_ft
         if field_elev is None:
@@ -283,6 +284,28 @@ class TakeoffModel:
         runway_ok = asda_margin >= 0 and toda_margin >= 0
         climb_ok = climb >= inputs.climb_target_ft_nm
         feasible = runway_ok and climb_ok
+
+        external_store_drag_unmodeled = loadout_label.casefold() != "clean"
+        hot_high_reduced_thrust = (
+            pa >= 2000.0
+            and inputs.environment.oat_c >= 35.0
+            and rpm_pct < 99.5
+        )
+        takeoff_data_valid = not (
+            external_store_drag_unmodeled or hot_high_reduced_thrust
+        )
+
+        if external_store_drag_unmodeled:
+            warnings.append(
+                f"External-store takeoff drag is not modeled for {loadout_label}. "
+                "Distances, margins, climb, and any GO indication are unvalidated."
+            )
+        if hot_high_reduced_thrust:
+            warnings.append(
+                "Hot/high reduced-thrust takeoff performance is unvalidated. The current static "
+                "RPM-to-fuel-flow reference and reduced-thrust distance correction did not match "
+                "the Henderson +40 C DCS tests."
+            )
 
         if rpm_pct < RPM_FLOOR[flaps]:
             warnings.append(f"{flaps} selected below AUTO policy floor of {RPM_FLOOR[flaps]}% RPM.")
@@ -340,8 +363,8 @@ class TakeoffModel:
             stabilizer_trim_note=(
                 f"Set pitch trim {takeoff_trim_anu:.1f} ANU before commencing the takeoff roll. "
                 + (
-                    "The 6.0 ANU MANEUVER value is the midpoint of the DCS-observed 5.0 to 7.0 ANU band "
-                    "and targets an easy rotation at V2 without excessive backpressure. "
+                    "The 6.0 ANU MANEUVER setting is provisional and the displayed 5.0 to 7.0 ANU range "
+                    "is a trial range, not an accepted band. It targets an easy rotation at V2 without excessive backpressure. "
                     if flaps == "MANEUVER"
                     else "This provisional setting targets an easy rotation at V2 without excessive backpressure. "
                 )
@@ -349,17 +372,19 @@ class TakeoffModel:
                 "For an engine failure after rotation, establish gear up, fly V2+15, "
                 "and use MILITARY thrust on the operating engine. Trim as required after liftoff."
             ),
+            takeoff_loadout=loadout_label,
+            takeoff_data_valid=takeoff_data_valid,
             provenance=prov,
             warnings=warnings,
             notes=[
                 f"Runway planning factor: {inputs.runway_factor:.2f}.",
                 f"Wind policy: {inputs.headwind_credit_pct:.0f}% headwind credit / "
                 f"{inputs.tailwind_penalty_pct:.0f}% tailwind penalty.",
-                "Fuel-flow guidance is a per-engine static DCS EIG calibration reference.",
+                "Fuel-flow guidance is a per-engine sea-level static DCS EIG calibration reference, not an environment-corrected target.",
                 "AUTO never selects afterburner for takeoff.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",
-                "MANEUVER trim is DCS-observation-calibrated; UP and FULL remain provisional pending controlled tests across center-of-gravity conditions.",
+                "Current trim values are provisional. The latest 62,000 lb two-tank/two-AIM-9 tests found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy.",
                 "FULL uses the legacy table's flap_deg=40 code while the cockpit configuration is displayed as FULL.",
             ],
         )

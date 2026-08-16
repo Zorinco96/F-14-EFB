@@ -11,6 +11,13 @@ from src.f14perf.cruise import CruiseModel
 from src.f14perf.energy import EnergyModel
 from src.f14perf.fuel import FuelModel
 from src.f14perf.landing import LandingModel
+from src.f14perf.loadout import (
+    LOADOUT_PRESETS,
+    STATION_OPTIONS,
+    STORE_CATALOG,
+    Loadout,
+    loadout_from_preset,
+)
 from src.f14perf.mission import MissionPlanner
 from src.f14perf.takeoff import AutoTakeoffSelector, TakeoffModel
 from src.f14perf.types import Environment, Runway, TakeoffInputs
@@ -21,7 +28,7 @@ st.set_page_config(page_title="F-14 EFB", page_icon="✈", layout="wide")
 st.title("F-14 EFB")
 st.caption("DCS World planning model • v3 • provenance-aware performance calculations")
 
-MODEL_REVISION = "2026-08-16-maneuver-trim-6"
+MODEL_REVISION = "2026-08-16-loaded-takeoff-validation-hold"
 
 
 @st.cache_resource
@@ -119,7 +126,31 @@ st.sidebar.header("Aircraft / Mission")
 takeoff_weight = st.sidebar.number_input("Takeoff gross weight (lb)", 40000, 76000, 65000, 500)
 landing_weight = st.sidebar.number_input("Landing gross weight (lb)", 40000, 76000, 54000, 500)
 starting_fuel = st.sidebar.number_input("Starting fuel (lb)", 0, 21000, 16000, 500)
-drag_index = st.sidebar.number_input("Drag index", 0.0, 200.0, 0.0, 5.0)
+loadout_preset = st.sidebar.selectbox(
+    "Loadout preset",
+    [*LOADOUT_PRESETS, "Custom station loadout"],
+    help="Choose a preset or reproduce the DCS rearm/loadout panel by station.",
+)
+if loadout_preset == "Custom station loadout":
+    selected_stations: dict[str, str] = {}
+    with st.sidebar.expander("Loadout stations", expanded=True):
+        st.caption("Left wing/glove to right wing/glove")
+        for station, options in STATION_OPTIONS.items():
+            selected_stations[station] = st.selectbox(
+                f"STA {station}",
+                options,
+                format_func=lambda key: STORE_CATALOG[key].label,
+                key=f"loadout_station_{station}",
+            )
+    loadout = Loadout(selected_stations)
+else:
+    loadout = loadout_from_preset(loadout_preset)
+
+drag_index = loadout.model_drag_index
+st.sidebar.caption(f"Selected: {loadout.summary}")
+st.sidebar.caption(
+    f"Derived model drag units: {drag_index:.1f}. Gross weight is entered directly and store weight is not added again."
+)
 route_nm = st.sidebar.number_input("Planned route distance (NM)", 0.0, 3000.0, 300.0, 25.0)
 
 st.sidebar.header("Runway")
@@ -168,6 +199,7 @@ inputs = TakeoffInputs(
     climb_target_ft_nm=float(climb_gate),
     headwind_credit_pct=headwind_credit,
     tailwind_penalty_pct=tailwind_penalty,
+    takeoff_loadout=loadout.summary,
 )
 
 m = models(MODEL_REVISION)
@@ -187,8 +219,13 @@ except Exception as exc:
 
 headwind, crosswind = wind_components(environment.wind_dir_deg, environment.wind_speed_kt, runway.heading_deg)
 
+takeoff_status = (
+    "UNVALIDATED"
+    if not takeoff.takeoff_data_valid
+    else ("GO" if takeoff.feasible else "NO-GO")
+)
 summary1, summary2, summary3, summary4 = st.columns(4)
-summary1.metric("Takeoff", "GO" if takeoff.feasible else "NO-GO")
+summary1.metric("Takeoff", takeoff_status)
 summary2.metric("Config / Thrust", f"{takeoff.flaps} / {takeoff.thrust_setting}")
 summary3.metric("Runway wind", f"{headwind:+.0f} kt HW", f"{abs(crosswind):.0f} kt XW")
 summary4.metric("Optimum cruise", f"M {cruise.optimum_mach:.3f}", f"FL{cruise.optimum_altitude_ft/100:.0f}")
@@ -198,7 +235,11 @@ mission_tab, takeoff_tab, climb_tab, cruise_tab, landing_tab, energy_tab, data_t
 )
 
 with takeoff_tab:
-    if takeoff.feasible:
+    if not takeoff.takeoff_data_valid:
+        st.warning(
+            "TAKEOFF PERFORMANCE: validation hold. The displayed values cannot support a GO determination for this condition."
+        )
+    elif takeoff.feasible:
         st.success("TAKEOFF PERFORMANCE: planning criteria satisfied")
     else:
         st.error("TAKEOFF PERFORMANCE: one or more planning criteria not satisfied")
@@ -216,7 +257,7 @@ with takeoff_tab:
     t1, t2, t3 = st.columns(3)
     trim_band = getattr(takeoff, "stabilizer_trim_band_anu", None)
     trim_delta = (
-        f"DCS BAND {trim_band[0]:.1f}-{trim_band[1]:.1f}"
+        f"TRIAL RANGE {trim_band[0]:.1f}-{trim_band[1]:.1f}"
         if trim_band
         else "SET BEFORE ROLL"
     )
@@ -350,6 +391,8 @@ with mission_tab:
     mt2.metric("OEI speed", f"{takeoff.oei_climb_speed_kt:.0f} KIAS", "V2 + 15")
     mt3.metric("OEI configuration", "GEAR UP / MIL", "OPERATING ENGINE")
     st.caption(takeoff.stabilizer_trim_note)
+    st.caption(f"Takeoff stores: {takeoff.takeoff_loadout} | status: {takeoff_status}")
+    st.caption(f"Derived model drag units for climb/cruise: {drag_index:.1f}")
     mc5, mc6, mc7 = st.columns(3)
     mc5.metric("Cruise", f"M{cruise.optimum_mach:.3f} / FL{cruise.optimum_altitude_ft/100:.0f}")
     mc6.metric("Landing", f"15 units / ~{landing.on_speed_ias_est_kt:.0f} kt")
@@ -389,7 +432,8 @@ The dedicated F-14B/D performance supplement is not bundled with this project. T
         "data/f14_landing_natops_full.csv\n"
         "data/f14_cruise_natops.csv\n"
         "data/F110_engine.csv\n"
-        "data/dcs_airports.csv"
+        "data/dcs_airports.csv\n"
+        "data/dcs_takeoff_test_log.csv"
     )
     st.markdown("**Known legacy data issue**")
     st.write("`data/f14_aero.csv` contains malformed entries and is not used as an authoritative v3 aerodynamic polar.")

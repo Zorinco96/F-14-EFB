@@ -23,7 +23,7 @@
       "schedule_anu": {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0},
       "maneuver_observed_band_anu": [5.0, 7.0],
       "rotation_control_objective": "easy rotation at V2 without excessive backpressure",
-      "validation_status": "MANEUVER calibrated to prior DCS observations; UP and FULL pending controlled tests across CG",
+      "validation_status": "Current trim schedule remains provisional; 62,000 lb two-tank/two-AIM-9 tests found 5.0 UP slightly heavy and 6.5 MANEUVER heavy",
       "vfs_spread_source": "vspeeds.csv Vfs minus V2",
       "oei_climb_speed_increment_kt": 15,
       "oei_configuration": "GEAR UP",
@@ -37,6 +37,10 @@
       "minimum_time_power": "MILITARY",
       "minimum_time_rpm_pct": 100
     }
+  },
+  "takeoff_validation_holds": {
+    "external_store_drag": "Takeoff drag is not yet modeled; loaded takeoff results are UNVALIDATED",
+    "hot_high_reduced_thrust": "Static RPM/FF mapping and distance correction did not match Henderson +40 C tests"
   },
   "calibration": {
     "condition": "65000 lb, approximately sea level, 15 C, 29.92 inHg, calm, dry, MIL",
