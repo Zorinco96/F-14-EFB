@@ -1,0 +1,48 @@
+{
+  "aircraft": "F-14B",
+  "simulation": "DCS World",
+  "policy": {
+    "allow_afterburner_auto_takeoff": false,
+    "runway_factor": 1.10,
+    "aeo_climb_gate_ft_nm": 300,
+    "takeoff_wind_credit_pct": {
+      "headwind": 50,
+      "tailwind": 150,
+      "alternate_headwind": 0
+    },
+    "takeoff_rpm_floor_pct": {
+      "UP": 85,
+      "MANEUVER": 90,
+      "FULL": 96
+    },
+    "takeoff_trim": {
+      "set_before_takeoff_roll": true,
+      "rotation_target_speed": "V2",
+      "rotation_stabilator_reference_te_up_deg": 3.0,
+      "integrated_trim_full_flap_te_up_deg": 3.0,
+      "flap_deflection_deg": {"UP": 0, "MANEUVER": 10, "FULL": 35},
+      "schedule_method": "linear flap compensation estimate",
+      "schedule_anu": {"UP": 3.0, "MANEUVER": 2.1, "FULL": 0.0},
+      "rotation_control_objective": "easy rotation at V2 without excessive backpressure",
+      "validation_status": "estimated pending controlled DCS tests across CG",
+      "vfs_spread_source": "vspeeds.csv Vfs minus V2",
+      "oei_climb_speed_increment_kt": 15,
+      "oei_configuration": "GEAR UP",
+      "oei_operating_engine_thrust": "MILITARY",
+      "trim_controls_airspeed": false
+    },
+    "climb_schedule_max_ias_kt": 250,
+    "climb_profiles": {
+      "default": "MOST_EFFICIENT",
+      "most_efficient_rpm_range_pct": [85, 100],
+      "minimum_time_power": "MILITARY",
+      "minimum_time_rpm_pct": 100
+    }
+  },
+  "calibration": {
+    "condition": "65000 lb, approximately sea level, 15 C, 29.92 inHg, calm, dry, MIL",
+    "UP": {"vr_kt": 159, "asd_ft": 2460, "agd_ft": 2900},
+    "MANEUVER": {"vr_kt": 146, "asd_ft": 2583, "agd_ft": 2456},
+    "FULL": {"vr_kt": 140, "asd_ft": 2168, "agd_ft": 2550}
+  }
+}
