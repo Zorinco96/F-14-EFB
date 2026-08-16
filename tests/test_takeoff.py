@@ -90,7 +90,7 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
     result = AutoTakeoffSelector(data_dir).select(
         baseline(thrust="MANUAL", rpm_pct=90)
     )
-    assert result.thrust_setting == "REDUCED (90% RPM)"
+    assert result.thrust_setting == "REDUCED DRY TEST"
     assert result.eig_reference_rpm_pct == 90
     assert result.fuel_flow_pph_per_engine == 4800
     assert result.fuel_flow_pph_total == 9600
@@ -102,12 +102,26 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
     assert "MILITARY thrust on the operating engine" in result.stabilizer_trim_note
 
 
-def test_military_command_uses_observed_99_percent_eig_reference(data_dir):
+def test_military_command_uses_natops_on_deck_eig_reference(data_dir):
     result = TakeoffModel(data_dir).calculate(baseline(), "UP", 100)
-    assert result.thrust_setting == "MILITARY"
+    assert result.thrust_setting == "MIL"
     assert result.rpm_pct == 100
-    assert result.eig_reference_rpm_pct == 99
-    assert result.fuel_flow_pph_per_engine == 10000
+    assert result.eig_reference_rpm_pct == 100
+    assert result.fuel_flow_pph_per_engine == 10100
+
+
+def test_ff_first_inverse_uses_henderson_anchor(data_dir):
+    model = TakeoffModel(data_dir)
+    point = model.engine.rpm_for_takeoff_ff(5_250, 2_492, 40)
+    assert point.rpm_pct == 95
+    assert point.fuel_flow_pph_per_engine == 5_250
+
+
+def test_ff_first_inverse_uses_sea_level_anchor(data_dir):
+    model = TakeoffModel(data_dir)
+    point = model.engine.rpm_for_takeoff_ff(7_000, 0, 15)
+    assert point.rpm_pct == 95
+    assert point.fuel_flow_pph_per_engine == 7_000
 
 
 def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):

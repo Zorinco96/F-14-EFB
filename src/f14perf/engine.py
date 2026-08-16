@@ -146,6 +146,19 @@ class F110Deck:
         """
 
         commanded_rpm = max(70.0, min(100.0, float(rpm_pct)))
+        if commanded_rpm >= 99.5:
+            return EnginePoint(
+                0.0,
+                10_100.0,
+                100.0,
+                Provenance(
+                    Method.DIRECT_TABLE,
+                    "NAVAIR 01-F14AAP-1, sections 2.11.2-2.11.7",
+                    "Normal on-deck MIL indications: approximately 10,100 PPH per engine, "
+                    "95-104% N2, and 3-10% nozzle",
+                    "High for the published normal indication; use matched engine indications and the MIL detent",
+                ),
+            )
         env = self.takeoff_ff_environment
         reference_pa = float(env["pressure_altitude_ft"].median())
         reference_oat = float(env["oat_c"].median())
@@ -191,3 +204,67 @@ class F110Deck:
             "Medium near the Batumi sea-level calibration knots; advisory away from them",
         )
         return EnginePoint(0.0, lookup.value, observed_rpm, prov)
+
+    def rpm_for_takeoff_ff(
+        self,
+        fuel_flow_pph_per_engine: float,
+        pressure_altitude_ft: float = 0.0,
+        oat_c: float = 15.0,
+    ) -> EnginePoint:
+        """Invert the observed dry-power EIG knots for an FF-first setup.
+
+        Fuel flow is the displayed takeoff-setting cue. RPM is returned only as
+        a secondary cross-check. The inverse is limited to the measured range;
+        MIL is handled separately by :meth:`takeoff_eig_reference`.
+        """
+
+        target_ff = float(fuel_flow_pph_per_engine)
+        env = self.takeoff_ff_environment
+        reference_pa = float(env["pressure_altitude_ft"].median())
+        reference_oat = float(env["oat_c"].median())
+        near_environment_anchor = (
+            abs(float(pressure_altitude_ft) - reference_pa) <= 750.0
+            and abs(float(oat_c) - reference_oat) <= 5.0
+            and float(env["ff_pph_per_engine"].min()) <= target_ff
+            <= float(env["ff_pph_per_engine"].max())
+        )
+        if near_environment_anchor:
+            lookup = regular_grid_interpolate(
+                env,
+                {"ff_pph_per_engine": target_ff},
+                "rpm_pct",
+            )
+            return EnginePoint(
+                0.0,
+                target_ff,
+                lookup.value,
+                Provenance(
+                    Method.CALIBRATED,
+                    "DCS Henderson hot/high F110 EIG observations",
+                    f"Inverse FF-to-RPM interpolation; {lookup.detail}",
+                    "Low-medium; one environment and the 5,250-6,000 PPH/engine band only",
+                ),
+            )
+
+        ff_min = float(self.takeoff_ff["ff_pph"].min())
+        ff_max = float(self.takeoff_ff["ff_pph"].max())
+        bounded_ff = max(ff_min, min(ff_max, target_ff))
+        lookup = regular_grid_interpolate(
+            self.takeoff_ff,
+            {"ff_pph": bounded_ff},
+            "rpm_pct",
+        )
+        detail = f"Inverse FF-to-RPM interpolation; {lookup.detail}"
+        if bounded_ff != target_ff:
+            detail += f"; target bounded to observed {bounded_ff:.0f} PPH/engine"
+        return EnginePoint(
+            0.0,
+            target_ff,
+            lookup.value,
+            Provenance(
+                Method.CALIBRATED,
+                "DCS static F110 EIG fuel-flow calibration",
+                detail,
+                "Medium near the Batumi sea-level knots; advisory away from them",
+            ),
+        )

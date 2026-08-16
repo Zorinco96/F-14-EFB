@@ -282,7 +282,7 @@ class TakeoffModel:
             oat_c=inputs.environment.oat_c,
         )
         thrust_setting = (
-            "MILITARY" if rpm_pct >= 99.5 else f"REDUCED ({rpm_pct:.0f}% RPM)"
+            "MIL" if rpm_pct >= 99.5 else "REDUCED DRY TEST"
         )
 
         factored_asd = asd * inputs.runway_factor
@@ -299,8 +299,11 @@ class TakeoffModel:
             and inputs.environment.oat_c >= 35.0
             and rpm_pct < 99.5
         )
+        outside_legacy_grid = table_prov.method == Method.EXTRAPOLATED
         takeoff_data_valid = not (
-            external_store_drag_unmodeled or hot_high_reduced_thrust
+            external_store_drag_unmodeled
+            or hot_high_reduced_thrust
+            or outside_legacy_grid
         )
 
         if external_store_drag_unmodeled:
@@ -313,6 +316,11 @@ class TakeoffModel:
                 "Hot/high reduced-thrust runway performance is unvalidated. Fuel-flow guidance "
                 "uses the limited Henderson observations within the tested 95-98% RPM envelope, "
                 "but the thrust and runway-distance correction is not calibrated."
+            )
+        if outside_legacy_grid:
+            warnings.append(
+                "Selected weight, pressure altitude, or temperature is outside the legacy takeoff grid. "
+                "The result is extrapolated and placed on planning hold."
             )
 
         if rpm_pct < RPM_FLOOR[flaps]:
@@ -391,7 +399,7 @@ class TakeoffModel:
                 f"Runway planning factor: {inputs.runway_factor:.2f}.",
                 f"Wind policy: {inputs.headwind_credit_pct:.0f}% headwind credit / "
                 f"{inputs.tailwind_penalty_pct:.0f}% tailwind penalty.",
-                f"Fuel-flow guidance is per engine and advisory. Source: {eig_reference.provenance.source}.",
+                f"Fuel flow is the primary takeoff thrust-set indication and is shown per engine. RPM is a cross-check. Source: {eig_reference.provenance.source}.",
                 "AUTO never selects afterburner for takeoff.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",

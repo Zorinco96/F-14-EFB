@@ -14,8 +14,9 @@ def test_default_interface_uses_neutral_status_and_coarse_planning_outputs():
     app = AppTest.from_file(APP_PATH, default_timeout=30).run()
 
     assert not app.exception
-    assert _element(app.metric, "Departure").value == "LEGACY FIT"
-    assert _element(app.metric, "V2 / trial trim").value.endswith("5.5 ANU")
+    assert _element(app.metric, "Departure").value == "REFERENCE ONLY"
+    assert _element(app.metric, "SET FF / engine").value == "10,100 PPH"
+    assert _element(app.metric, "V1").value == "WITHHELD"
     assert _element(app.metric, "Time allowance").value.endswith("min")
     assert _element(app.metric, "Fuel allowance").value.endswith("lb")
     assert _element(app.metric, "Normal DLC neutral").value == "~140 KIAS"
@@ -33,12 +34,14 @@ def test_henderson_observation_is_shown_without_a_go_call():
     _element(app.selectbox, "Takeoff flaps").set_value("MANEUVER")
     _element(app.number_input, "Takeoff gross weight (lb)").set_value(62_000)
     _element(app.number_input, "OAT (°C)").set_value(40.0)
-    _element(app.slider, "Takeoff RPM (%)").set_value(95)
+    _element(app.radio, "Takeoff power").set_value("Reduced dry test")
+    app.run()
+    _element(app.slider, "Target FF per engine (PPH)").set_value(5_300)
     app.run()
 
     assert not app.exception
     assert _element(app.metric, "Departure").value == "PLANNING HOLD"
-    assert _element(app.metric, "V2 / trial trim").value.endswith("7.0 ANU")
-    assert _element(app.metric, "Liftoff distance").value == "6,101 ft"
-    assert _element(app.metric, "Test trim / force").value == "6.5 ANU"
-    assert any("+1,654 ft" in caption.value for caption in app.caption)
+    assert _element(app.metric, "SET FF / engine").value == "5,300 PPH"
+    assert _element(app.metric, "Tacview AEO liftoff").value == "4,853 ft"
+    assert _element(app.metric, "Measured available").value == "~4,800 ft"
+    assert any("about +18 kt" in caption.value for caption in app.caption)

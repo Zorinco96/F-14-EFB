@@ -1,0 +1,2 @@
+map,airport_name,runway_end,dcs_runway_start_tora_ft,dcs_spawn_offset_ft,uncertainty_ft,source_note
+Nevada,Henderson Executive,35L,4800,1700,100,"Attached Tacview start position reconciled against the published 6501-ft runway endpoints; approximate DCS runway-start distance, not surveyed TORA"

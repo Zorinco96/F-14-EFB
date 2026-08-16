@@ -117,7 +117,7 @@ For each weight, fly the generated 95% dry and MIL planning schedules from 1,000
 
 At 50/60/70k gross weight and representative drag indices:
 
-- fly the table optimum altitude and M0.718
+- fly the unverified legacy trial altitude and M0.718 while also recording the NATOPS 8-unit AOA condition
 - stabilize for at least one minute
 - record fuel flow and required throttle/RPM
 - repeat one altitude above and below optimum

@@ -23,19 +23,16 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - METAR paste or manual weather
 - pressure altitude
 - wind component calculation
-- UP / MANEUVER / FULL / AUTO flap configuration
-- automatic reduced-thrust search
-- MIL (100% command) default; reduced-thrust AUTO remains selectable for DCS test planning
-- RPM policy floors:
-  - UP 85%
-  - MANEUVER 90%
-  - FULL 96%
-- AUTO never selects afterburner
+- explicit UP / MANEUVER / FULL flap selection
+- MIL default; reduced dry thrust is isolated as a DCS test mode
+- fuel flow is the primary takeoff thrust-set indication
+- MIL reference of approximately 10,100 PPH per engine, with 95-104% N2 and 3-10% nozzle as cross-checks
+- FF-first reduced-dry input with observation-derived RPM cross-check
 - default 0% headwind credit / 150% tailwind penalty, with a 50% / 150% option
-- V1 reference, balanced-field-style V1 sweep, Vr, V2, Vfs, and Vs reference
+- V1 withheld from the operational interface until controlled engine-cut validation exists
+- legacy Vr and V2 references plus estimated Vfs and Vs, all visibly guarded
 - integer V-speed presentation
-- resolved MILITARY or REDUCED thrust label
-- separate commanded RPM and observed EIG RPM/FF references, using Batumi static and local Henderson +40 C observations
+- separate FF target and RPM cross-check, using NATOPS MIL indications plus Batumi static and local Henderson +40 C observations
 - next-trial takeoff pitch-trim candidates established before the roll: 5.5 ANU UP and 7.0 ANU MANEUVER, targeting an easy rotation without excessive backpressure
 - separate OEI climb target of V2+15, gear up, with MILITARY thrust on the operating engine
 - explicit note that trim does not command or guarantee climb airspeed
@@ -46,14 +43,15 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - OEI climb advisory
 - direct DCS gross-weight input
 - DCS-style station loadout or loadout preset; internal drag units are derived automatically
-- validation hold for external-store and hot/high reduced-thrust takeoff conditions that are not yet calibrated
-- in-app DCS engine and takeoff observation tables
+- validation hold for external-store, hot/high reduced-thrust, and out-of-grid takeoff conditions
+- DCS runway-start available distance when known; Henderson 35L defaults to the Tacview-reconciled 4,800 ft instead of the full 6,501 ft
+- in-app DCS engine, user-observation, and attached-Tacview motion tables
 - explicit provenance/confidence output
 
 ### Climb
 
-- conservative MIL and 95% dry mission-planning schedules to the selected cruise flight level
-- 250 KIAS through 10,000 ft, then 300 KIAS to a Mach 0.72 crossover
+- NATOPS MIL-climb technique of 6 units AOA at sea level increasing to 9.5 at combat ceiling
+- conservative MIL and 95% dry time/fuel integration allowances to the selected cruise trial flight level
 - guarded rate-of-climb and time allowances that are not presented as maximum aircraft capability; time and fuel are rounded upward
 - conservative two-engine climb fuel burn
 - fuel flow displayed in PPH per engine
@@ -62,10 +60,11 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 
 ### Cruise
 
-- optimum cruise altitude from the legacy weight/drag-index table
+- legacy cruise trial altitude and Mach, explicitly marked unverified
+- NATOPS optimum-altitude cruise technique of 8 units AOA
 - altitude rounded to the nearest usable 1,000 ft flight level
 - KIAS and Mach at the rounded flight level
-- estimated initial RPM rounded upward to 5% and fuel flow rounded upward to 250 PPH per engine
+- estimated FF planning allowance rounded upward to 250 PPH per engine and RPM cross-check rounded upward to 5%
 - estimated TAS
 - estimated specific range
 - estimated endurance
@@ -113,7 +112,7 @@ The repository contains legacy datasets labeled as NATOPS-derived. Version 3 pre
 - CALIBRATED
 - ESTIMATED
 
-See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, and `docs/INTERFACE_OUTPUT_AUDIT_2026-08-16.md`.
+See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, `docs/EFB_UX_BENCHMARK_2026-08-16.md`, and `docs/VALIDATION_MATRIX_2026-08-16.md`.
 
 ## Run
 

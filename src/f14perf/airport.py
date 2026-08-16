@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .data import read_csv, require_columns
+from .data import DataError, read_csv, require_columns
 from .types import Runway
 
 
@@ -16,6 +16,9 @@ class AirportSelection:
     runway_end: str
     runway: Runway
     database_note: str
+    dcs_runway_start_tora_ft: float | None = None
+    dcs_spawn_offset_ft: float | None = None
+    runway_start_note: str = ""
 
 
 class AirportDatabase:
@@ -28,6 +31,22 @@ class AirportDatabase:
     def __init__(self, data_dir: Path | str | None = None):
         self.df = read_csv("dcs_airports.csv", data_dir)
         require_columns(self.df, self.REQUIRED, "dcs_airports.csv")
+        try:
+            self.runway_starts = read_csv("dcs_runway_starts.csv", data_dir)
+            require_columns(
+                self.runway_starts,
+                {
+                    "map",
+                    "airport_name",
+                    "runway_end",
+                    "dcs_runway_start_tora_ft",
+                    "dcs_spawn_offset_ft",
+                    "source_note",
+                },
+                "dcs_runway_starts.csv",
+            )
+        except (DataError, FileNotFoundError):
+            self.runway_starts = pd.DataFrame()
 
     @property
     def maps(self) -> list[str]:
@@ -83,4 +102,30 @@ class AirportDatabase:
             elevation_ft=elevation,
             notes=note,
         )
-        return AirportSelection(map_name, airport_name, self._runway_key(runway_end), runway, note)
+        start_tora = None
+        spawn_offset = None
+        start_note = ""
+        if not self.runway_starts.empty:
+            start_rows = self.runway_starts[
+                (self.runway_starts["map"] == map_name)
+                & (self.runway_starts["airport_name"] == airport_name)
+                & (
+                    self.runway_starts["runway_end"].map(self._runway_key)
+                    == self._runway_key(runway_end)
+                )
+            ]
+            if not start_rows.empty:
+                start_row = start_rows.iloc[0]
+                start_tora = float(start_row["dcs_runway_start_tora_ft"])
+                spawn_offset = float(start_row["dcs_spawn_offset_ft"])
+                start_note = str(start_row["source_note"])
+        return AirportSelection(
+            map_name,
+            airport_name,
+            self._runway_key(runway_end),
+            runway,
+            note,
+            start_tora,
+            spawn_offset,
+            start_note,
+        )

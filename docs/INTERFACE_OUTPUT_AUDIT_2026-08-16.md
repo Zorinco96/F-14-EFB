@@ -1,4 +1,6 @@
-# Interface and Output Audit - 2026-08-16
+# Interface and output audit, 2026-08-16
+
+> Updated after the attached Tacview reconciliation. The current release findings are in `EFB_UX_BENCHMARK_2026-08-16.md` and `VALIDATION_MATRIX_2026-08-16.md`. Earlier runway-remaining-derived distances below have been replaced by measurements from brake release.
 
 ## Scope
 
@@ -10,7 +12,7 @@ The governing rule is conservative DCS mission planning without converting an un
 
 | Finding | Risk | Implemented change |
 | --- | --- | --- |
-| `MEETS PLAN` resembled a GO determination | Overstated confidence in legacy takeoff data | Replaced with `LEGACY FIT`; external stores and hot/high reduced thrust remain `PLANNING HOLD` |
+| `MEETS PLAN` and `LEGACY FIT` resembled GO determinations | Overstated confidence in legacy takeoff data | Replaced with `REFERENCE ONLY`; external stores, hot/high reduced thrust, and extrapolated cases remain `PLANNING HOLD` |
 | Five-card header and repeated mission metrics were dense | Slower mission scan | Reduced header to four cards and consolidated enroute, recovery, and fuel into a mission-phase table |
 | BINGO and JOKER were disconnected from the fuel inputs | Poor input grouping | Moved both into `Mission and fuel` |
 | Planning policy was collapsed by default | Important assumptions were easy to miss | Planning policy now opens by default |
@@ -19,14 +21,13 @@ The governing rule is conservative DCS mission planning without converting an un
 
 ## Takeoff cross-check
 
-The Henderson observations expose a material gap between the current legacy runway model and DCS behavior.
+The Henderson Tacviews exposed a material runway-entry error. The DCS runway-start spawn leaves approximately 4,800 ft available, not the full 6,501 ft physical runway length.
 
-| Condition | Current legacy AGD | Factored AGD | Observed AEO liftoff | Difference from raw AGD |
+| Condition | Legacy AEO estimate | Factored estimate | Tacview AEO liftoff | Difference from raw estimate |
 | --- | ---: | ---: | ---: | ---: |
-| 62,000 lb, UP, 98%, +40 C, two tanks, two AIM-9 | 4,274 ft | 4,915 ft | 6,301 ft | +2,027 ft |
-| 62,000 lb, MANEUVER, 95%, +40 C, two tanks, two AIM-9 | 4,447 ft | 5,114 ft | 6,101 ft | +1,654 ft |
+| 62,000 lb, MANEUVER, 95%, +40 C, two tanks, two AIM-9 | 4,447 ft | 5,114 ft | 4,853 ft | +406 ft |
 
-The observed value is AEO distance to liftoff. AGD is a different planning quantity, so the difference is not used as a direct correction multiplier. The physically inconsistent ordering is sufficient to prevent a runway-fit call for these conditions.
+The Tacview value is motion distance from brake release to liftoff. The factored app value exceeds the approximately 4,800 ft available and the case remains on planning hold because external-store drag and hot/high reduced thrust are not validated.
 
 The takeoff tab and kneeboard now show the matching DCS observation beside the unvalidated model result.
 
@@ -61,7 +62,7 @@ For the 65,000 lb clean baseline to FL340, the app now shows a 23-minute and 6,0
 
 ### Cruise
 
-Optimum altitude and Mach remain table-backed. KIAS is calculated from the atmosphere at the rounded usable flight level. The power model is not DCS-calibrated, so the first equilibrium point is rounded upward to a usable 5-percent RPM setting and fuel flow is rounded upward to 250 PPH per engine.
+The cruise table remains only as an unverified trial target. Its prior source citation was invalid because NAVAIR 01-F14AAP-1B is a pocket checklist and cannot contain the cited page. KIAS is calculated from the atmosphere at the rounded trial flight level. The power model is not DCS-calibrated, so FF and RPM remain planning allowances.
 
 For the 65,000 lb clean baseline, the revised reference is:
 
@@ -70,7 +71,7 @@ For the 65,000 lb clean baseline, the revised reference is:
 - initial model setting 80% RPM
 - 2,250 PPH per engine
 
-A controlled DCS cruise matrix is still required before RPM and fuel flow can be treated as calibrated values.
+A controlled DCS cruise matrix is still required before altitude, Mach, RPM, or fuel flow can be treated as calibrated values. NATOPS Figure 14-1 supplies only the primary 8-unit AOA cruise technique for optimum altitude.
 
 ## Recovery cross-check
 

@@ -20,12 +20,12 @@ The following findings changed the application:
 
 1. The previous climb optimizer returned roughly 18,000 to 27,000 fpm in ordinary mission cases. Its low-order polar and legacy engine deck did not support that precision. The optimizer has been removed from the operational path and replaced with a conservative mission-planning schedule.
 2. Climb and cruise fuel-flow values passed through `F110Deck.total()` but retained a `per_engine` field name. This made total and per-engine semantics easy to confuse. Operational displays now use explicit PPH per engine fields; mission fuel calculations multiply by two internally.
-3. Cruise optimum altitudes such as 33,900 ft were not immediately usable planning levels. The app now rounds to the nearest 1,000 ft flight level and recomputes KIAS/TAS at that level while retaining the tabulated Mach target.
+3. Cruise entries such as 33,900 ft were not immediately usable planning levels. The app rounds them to the nearest 1,000 ft flight level, but now labels the entire altitude/Mach table as an unverified legacy trial because its prior pocket-checklist citation was invalid.
 4. The energy section used the same unvalidated low-order polar to publish specific excess power and sustained-turn values. These have been removed. The replacement is limited to ideal coordinated-turn geometry, which does not assert aircraft capability.
 5. Landing planning lacked a loadout-sensitive recovery fuel reference. The app now derives retained zero-fuel weight from entered gross weight and starting fuel, then shows field and carrier maximum fuel with stores retained and with selected expendable stores expended.
 6. Repeated low-confidence banners obscured the mission card. The UI now consolidates planning notes in one panel and handles uncertainty through conservative values and an explicit planning hold.
 7. The prior 54,000 lb on-speed estimate of 133 KIAS did not match NAVAIR 01-F14AAP-1 Figure 11-8. The flight-test chart gives approximately 140 KIAS with DLC neutral and 131 KIAS with DLC stowed, with a chart tolerance of +/-4 kt. The app now displays both lines.
-8. `MEETS PLAN` overstated the confidence of an unverified legacy result. The neutral status is now `LEGACY FIT`, and external-store or hot/high reduced-thrust conditions remain on `PLANNING HOLD`.
+8. `MEETS PLAN` and later `LEGACY FIT` overstated the confidence of an unverified legacy result. The neutral status is now `REFERENCE ONLY`; external-store, hot/high reduced-thrust, and out-of-grid cases remain on `PLANNING HOLD`.
 9. Climb, cruise power, and mission-fuel outputs carried unnecessary precision. Climb time and fuel are rounded upward, cruise power is rounded upward to usable cockpit increments, and mission burn is rounded upward to 500 lb.
 
 These changes do not convert unverified legacy tables into validated data. They reduce false precision and make the remaining assumptions operationally visible.
@@ -108,11 +108,11 @@ V3 performs multilinear interpolation. Wet-runway corrections are not present in
 
 Normal on-speed IAS now uses NAVAIR 01-F14AAP-1 Figure 11-8, whose data basis is flight test. At 54,000 lb and 15 units AOA, the digitized references are approximately 140 KIAS with DLC neutral and 131 KIAS with DLC stowed. The chart specifies indicated-airspeed tolerance of +/-4 kt. The chart covers 40,000 through 60,000 lb, 20-degree wing sweep, and all drag indexes.
 
-### 7. Cruise table: `data/f14_cruise_natops.csv`
+### 7. Unverified cruise trial table: `data/f14_cruise_natops.csv`
 
-The table provides optimum altitude and optimum Mach versus gross weight and drag index. The source note identifies a previously digitized F-14 performance table.
+The table contains altitude and Mach values versus gross weight and drag index. Its prior source note cited page 241 of NAVAIR 01-F14AAP-1B. That document is a short pocket checklist and cannot contain the cited page, so the citation was removed during the 2026-08-16 audit.
 
-V3 interpolates the table for optimum altitude/Mach, rounds altitude to the nearest 1,000 ft flight level, and recomputes KIAS/TAS at the rounded level. RPM, fuel flow per engine, and specific range are then estimated with the F110 and aerodynamic models.
+V3 retains the values only as an unverified DCS trial target, rounds altitude to the nearest 1,000 ft flight level, and recomputes KIAS/TAS at the rounded level. FF per engine, RPM, and specific range are model estimates. NATOPS Figure 14-1 supports 8 units AOA at optimum cruise altitude but does not validate these altitude or Mach entries.
 
 ### 8. F110 deck: `data/F110_engine.csv`
 

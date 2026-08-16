@@ -8,7 +8,7 @@ from .atmosphere import atmosphere, mach_to_cas_kt
 from .data import read_csv, require_columns
 from .engine import F110Deck
 from .interpolate import regular_grid_interpolate
-from .provenance import Method, Provenance, combine, worst_method
+from .provenance import Method, Provenance, combine
 from .types import CruiseResult
 
 
@@ -66,12 +66,11 @@ class CruiseModel:
         total_ff = ff_per_engine * 2.0
         specific_range = tas_kt / total_ff * 1000.0
         endurance = 1000.0 / total_ff
-        table_method = worst_method([alt.method, mach.method])
         table_prov = Provenance(
-            table_method,
-            "Legacy f14_cruise_natops.csv optimum-altitude table",
+            Method.ESTIMATED,
+            "Unverified legacy f14_cruise_natops.csv trial table",
             f"Weight/drag-index interpolation; raw altitude {raw_altitude:.0f} ft rounded to a usable flight level; source note: {self.df['source_note'].iloc[0]}",
-            "Medium-high for optimum altitude/Mach inside table; original digitization not re-verified in v3",
+            "Low; the prior 01-F14AAP-1B page citation was invalid and has been removed",
         )
         estimate_prov = Provenance(
             Method.ESTIMATED,
@@ -91,8 +90,9 @@ class CruiseModel:
             endurance_hr_per_1000lb=round(endurance, 3),
             provenance=combine(table_prov, estimate_prov, source="Cruise solution"),
             notes=[
-                "Optimum altitude is rounded to the nearest 1,000 ft usable flight level.",
-                "KIAS is atmosphere-derived. RPM is a modeled initial setting rounded up to 5%; fuel flow per engine is rounded up to 250 PPH.",
+                "Legacy trial altitude is rounded to the nearest 1,000 ft usable flight level; it is not a verified optimum.",
+                "NATOPS Figure 14-1 supports 8 units AOA at optimum cruise altitude, but does not validate this table's altitude or Mach values.",
+                "KIAS is atmosphere-derived. RPM is a modeled cross-check rounded up to 5%; fuel flow per engine is a trial planning allowance rounded up to 250 PPH.",
                 "Specific range and endurance use the two-engine aircraft fuel flow.",
             ],
         )

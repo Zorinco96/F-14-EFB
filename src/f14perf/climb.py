@@ -196,7 +196,8 @@ class ClimbModel:
         )
         rpm_label = "MIL" if strategy_key == "MINIMUM_TIME" else "95% dry"
         notes = [
-            f"Use {rpm_label}; plan 250 KIAS through 10,000 ft, then 300 KIAS to the Mach 0.72 crossover.",
+            "NATOPS Figure 14-1 technique is 6.0 units AOA at sea level increasing to 9.5 at combat ceiling for a MIL climb.",
+            f"The internal {rpm_label} time/fuel integration uses 250 KIAS through 10,000 ft, then 300 KIAS to the Mach 0.72 crossover; this is an engineering assumption, not a published pilot cue.",
             "Rates are conservative mission-planning allowances. They are not maximum-rate predictions.",
             "Displayed fuel flow is PPH per engine; profile fuel burn is the two-engine aircraft total.",
             "Elapsed time is rounded up to a whole minute and fuel is rounded up to 500 lb to avoid false precision.",
