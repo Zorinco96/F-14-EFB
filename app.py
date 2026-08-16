@@ -28,7 +28,7 @@ st.set_page_config(page_title="F-14 EFB", page_icon="✈", layout="wide")
 st.title("F-14 EFB")
 st.caption("DCS World planning model • v3 • provenance-aware performance calculations")
 
-MODEL_REVISION = "2026-08-16-loaded-takeoff-validation-hold"
+MODEL_REVISION = "2026-08-16-dcs-engine-and-runway-observations"
 
 
 @st.cache_resource
@@ -203,6 +203,8 @@ inputs = TakeoffInputs(
 )
 
 m = models(MODEL_REVISION)
+dcs_engine_observations = pd.read_csv("data/dcs_engine_observations.csv")
+dcs_takeoff_observations = pd.read_csv("data/dcs_takeoff_test_log.csv")
 
 try:
     takeoff = m["takeoff_auto"].select(inputs)
@@ -218,6 +220,26 @@ except Exception as exc:
     st.stop()
 
 headwind, crosswind = wind_components(environment.wind_dir_deg, environment.wind_speed_kt, runway.heading_deg)
+
+tank_count = sum(store == "FPU1" for store in loadout.normalized_stations.values())
+aim9_count = sum(
+    store in {"AIM9", "AIM9L", "AIM9M"}
+    for store in loadout.normalized_stations.values()
+)
+matching_dcs_runs = dcs_takeoff_observations[
+    dcs_takeoff_observations["airport"].fillna("").map(
+        lambda airport: bool(airport) and airport in runway.name
+    )
+    & dcs_takeoff_observations["runway"].fillna("").map(
+        lambda runway_end: bool(runway_end) and runway.name.endswith(f"RWY {runway_end}")
+    )
+    & (dcs_takeoff_observations["weight_lb"].sub(takeoff_weight).abs() <= 250)
+    & (dcs_takeoff_observations["oat_c"].sub(environment.oat_c).abs() <= 1)
+    & (dcs_takeoff_observations["flaps"] == takeoff.flaps)
+    & (dcs_takeoff_observations["rpm_pct"].sub(takeoff.rpm_pct).abs() <= 0.5)
+    & (dcs_takeoff_observations["external_tanks"] == tank_count)
+    & (dcs_takeoff_observations["aim9_count"] == aim9_count)
+]
 
 takeoff_status = (
     "UNVALIDATED"
@@ -246,8 +268,12 @@ with takeoff_tab:
     p1, p2, p3, p4 = st.columns(4)
     p1.metric("Flaps", takeoff.flaps)
     p2.metric("Thrust", takeoff.thrust_setting)
-    p3.metric("Engine target", f"{takeoff.rpm_pct:.0f}% N2")
-    p4.metric("FF reference", f"{takeoff.fuel_flow_pph_per_engine:,.0f} pph / engine")
+    p3.metric("Commanded RPM", f"{takeoff.rpm_pct:.0f}% N2")
+    p4.metric(
+        "Observed EIG reference",
+        f"{takeoff.eig_reference_rpm_pct:.0f}% N2",
+        f"{takeoff.fuel_flow_pph_per_engine:,.0f} pph / engine",
+    )
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("V1", f"{takeoff.v1_kt:.0f} kt", f"table ref {takeoff.v1_reference_kt:.0f}")
     c2.metric("Vr", f"{takeoff.vr_kt:.0f} kt")
@@ -277,6 +303,17 @@ with takeoff_tab:
     d2.metric("AGD", f"{takeoff.agd_ft:.0f} ft", f"factored {takeoff.factored_agd_ft:.0f}")
     d3.metric("ASDA margin", f"{takeoff.asda_margin_ft:+.0f} ft")
     d4.metric("TODA margin", f"{takeoff.toda_margin_ft:+.0f} ft")
+    observed_liftoff_runs = matching_dcs_runs.dropna(subset=["liftoff_distance_ft"])
+    if not observed_liftoff_runs.empty:
+        observed = observed_liftoff_runs.iloc[-1]
+        o1, o2 = st.columns(2)
+        o1.metric("DCS-observed AEO liftoff", f"{observed['liftoff_distance_ft']:.0f} ft")
+        o2.metric("Runway remaining at liftoff", f"{observed['liftoff_remaining_ft']:.0f} ft")
+        st.warning(
+            "The observed value is all-engines-operating distance to liftoff, not OEI accelerate-go "
+            "or 50-ft distance. Its exceedance of the modeled factored AGD confirms that this condition "
+            "must remain on validation hold."
+        )
     g1, g2, g3, g4 = st.columns(4)
     g1.metric("AEO climb", f"{takeoff.climb_gradient_ft_nm:.0f} ft/NM")
     g2.metric("OEI advisory", f"{takeoff.climb_gradient_oei_ft_nm:.0f} ft/NM")
@@ -384,7 +421,11 @@ with mission_tab:
         f"{takeoff.v1_kt:.0f} / {takeoff.vr_kt:.0f} / "
         f"{takeoff.v2_kt:.0f} / {takeoff.vfs_kt:.0f}",
     )
-    mc3.metric("Engine target", f"{takeoff.rpm_pct:.0f}% N2 / {takeoff.fuel_flow_pph_per_engine:,.0f} FF")
+    mc3.metric(
+        "Engine command / EIG ref",
+        f"{takeoff.rpm_pct:.0f}% / {takeoff.eig_reference_rpm_pct:.0f}% N2",
+        f"{takeoff.fuel_flow_pph_per_engine:,.0f} pph / engine",
+    )
     mc4.metric("AEO climb", f"{takeoff.climb_gradient_ft_nm:.0f} ft/NM")
     mt1, mt2, mt3 = st.columns(3)
     mt1.metric("Takeoff trim", f"{takeoff.stabilizer_trim_anu:.1f} ANU", trim_delta)
@@ -432,9 +473,53 @@ The dedicated F-14B/D performance supplement is not bundled with this project. T
         "data/f14_landing_natops_full.csv\n"
         "data/f14_cruise_natops.csv\n"
         "data/F110_engine.csv\n"
+        "data/f110_ff_to_rpm_knots.csv\n"
+        "data/f110_takeoff_ff_environment.csv\n"
+        "data/dcs_engine_observations.csv\n"
         "data/dcs_airports.csv\n"
         "data/dcs_takeoff_test_log.csv"
     )
+    with st.expander("DCS engine observations"):
+        st.dataframe(
+            dcs_engine_observations[
+                [
+                    "run_id",
+                    "airport",
+                    "test_type",
+                    "oat_c",
+                    "rpm_pct",
+                    "fuel_flow_left_pph",
+                    "fuel_flow_right_pph",
+                    "data_status",
+                ]
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+    with st.expander("DCS takeoff observations"):
+        st.dataframe(
+            dcs_takeoff_observations[
+                [
+                    "run_id",
+                    "airport",
+                    "runway",
+                    "weight_lb",
+                    "flaps",
+                    "takeoff_trim_anu",
+                    "rpm_pct",
+                    "fuel_flow_left_pph",
+                    "rotation_ias_kt",
+                    "rotation_distance_ft",
+                    "liftoff_distance_ft",
+                    "liftoff_distance_min_ft",
+                    "liftoff_distance_max_ft",
+                    "rotation_force",
+                    "data_status",
+                ]
+            ],
+            width="stretch",
+            hide_index=True,
+        )
     st.markdown("**Known legacy data issue**")
     st.write("`data/f14_aero.csv` contains malformed entries and is not used as an authoritative v3 aerodynamic polar.")
     with st.expander("Raw current takeoff result"):

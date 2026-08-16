@@ -145,6 +145,8 @@ Then test headwind and wet-surface effects separately.
 
 Store every raw run, not only averages. Recommended columns:
 
-`date,dcs_version,variant,map,airport,runway,weight_lb,cg_pct_mac,station_loadout,derived_model_drag_units,pa_ft,oat_c,wind_dir,wind_kt,condition,flaps,rpm_pct,v1_kt,vr_kt,v2_kt,vfs_kt,takeoff_trim_anu,oei_target_kt,trim_command_after_liftoff,stabilator_position,engine_failure_kt,decision,ground_distance_ft,height50_distance_ft,climb_gradient_ft_nm,roc_fpm,fuel_flow_left,fuel_flow_right,notes`
+`date,dcs_version,variant,map,airport,runway,weight_lb,cg_pct_mac,station_loadout,derived_model_drag_units,pa_ft,oat_c,wind_dir,wind_kt,condition,flaps,takeoff_trim_anu,thrust_mode,thrust_setting_basis,rpm_pct,v1_kt,vr_kt,v2_kt,vfs_kt,oei_target_kt,trim_command_after_liftoff,stabilator_position,engine_failure_kt,decision,rotation_distance_ft,liftoff_distance_ft,liftoff_distance_min_ft,liftoff_distance_max_ft,height50_distance_ft,climb_gradient_ft_nm,roc_fpm,fuel_flow_left,fuel_flow_right,notes`
 
 The maintained raw run log is `data/dcs_takeoff_test_log.csv`. Blank fields mean not reported, not zero. Derived distances are explicitly labeled and app-calculated values must never be entered as measured DCS results.
+
+The engine observation register is `data/dcs_engine_observations.csv`. Keep throttle-setting technique, observed RPM, and left/right fuel flow as separate fields. Do not convert a percentage of available thrust into RPM unless the cockpit RPM was actually observed.

@@ -91,6 +91,7 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
         baseline(thrust="MANUAL", rpm_pct=90)
     )
     assert result.thrust_setting == "REDUCED (90% RPM)"
+    assert result.eig_reference_rpm_pct == 90
     assert result.fuel_flow_pph_per_engine == 4800
     assert result.fuel_flow_pph_total == 9600
     assert result.vfs_kt == result.v2_kt + 20
@@ -99,6 +100,14 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
     assert "before commencing the takeoff roll" in result.stabilizer_trim_note
     assert "gear up" in result.stabilizer_trim_note
     assert "MILITARY thrust on the operating engine" in result.stabilizer_trim_note
+
+
+def test_military_command_uses_observed_99_percent_eig_reference(data_dir):
+    result = TakeoffModel(data_dir).calculate(baseline(), "UP", 100)
+    assert result.thrust_setting == "MILITARY"
+    assert result.rpm_pct == 100
+    assert result.eig_reference_rpm_pct == 99
+    assert result.fuel_flow_pph_per_engine == 10000
 
 
 def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):
@@ -144,3 +153,30 @@ def test_hot_high_reduced_thrust_is_marked_unvalidated(data_dir):
     )
     assert not result.takeoff_data_valid
     assert any("Hot/high reduced-thrust" in w for w in result.warnings)
+
+
+def test_hot_high_ff_guidance_uses_henderson_observations(data_dir):
+    environment = Environment(field_elevation_ft=2492, oat_c=40, qnh_inhg=29.92)
+    runway = Runway(
+        heading_deg=353,
+        tora_ft=6501,
+        toda_ft=6501,
+        asda_ft=6501,
+        elevation_ft=2492,
+    )
+    model = TakeoffModel(data_dir)
+    at_95 = model.calculate(
+        baseline(environment=environment, runway=runway),
+        "MANEUVER",
+        95,
+    )
+    at_98 = model.calculate(
+        baseline(environment=environment, runway=runway),
+        "UP",
+        98,
+    )
+    sea_level = model.calculate(baseline(), "UP", 95)
+    assert at_95.fuel_flow_pph_per_engine == 5250
+    assert at_98.fuel_flow_pph_per_engine == 6000
+    assert sea_level.fuel_flow_pph_per_engine == 7000
+    assert "loaded-aircraft observations near PA 2492 ft / 40 C" in at_95.provenance.detail

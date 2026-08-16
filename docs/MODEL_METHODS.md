@@ -75,9 +75,11 @@ Afterburner is never selected by AUTO.
 
 ## Engine display guidance
 
-The selected dry-thrust setting is displayed as either MILITARY or REDUCED (XX% RPM). The F-14B engine instrument group displays high-pressure compressor RPM (N2) and per-engine fuel flow. The takeoff card therefore shows the selected N2 target and a static per-engine fuel-flow reference interpolated from `f110_ff_to_rpm_knots.csv`.
+The selected dry-thrust command is displayed as either MILITARY or REDUCED (XX% RPM). The F-14B engine instrument group displays high-pressure compressor RPM (N2) and per-engine fuel flow. The takeoff card separates commanded RPM from the observed EIG reference. For MIL, a 100% model command is paired with the user-observed approximately 99% EIG RPM and 10,000 pph per engine rather than pretending the cockpit indication was exactly 100%.
 
-The fuel-flow knots are controlled DCS observations near sea level. A 100% MIL command uses the highest measured 99% EIG knot instead of extrapolating beyond the calibration. This output is advisory away from the calibration condition.
+`f110_ff_to_rpm_knots.csv` contains the user-confirmed Batumi standard-day static sweep: 71/80/85/90/95/99% RPM at approximately 1200/2500/3400/4800/7000/10000 pph per engine. A 100% MIL command uses the highest measured 99% EIG knot instead of extrapolating beyond the calibration.
+
+`f110_takeoff_ff_environment.csv` adds the Henderson +40 C observations. Near the tested condition and only from 95 through 98% RPM, the app uses 5250 pph at 95% (the mean of 5000 and 5500) and 6000 pph at 98%. This is a local interpolation from three observations, not a general altitude/temperature fuel-flow law. Outside that narrow envelope, the app retains the Batumi static reference and labels it advisory.
 
 ## Stabilizer trim
 
@@ -95,7 +97,9 @@ The pre-roll settings target an easy rotation at V2 without excessive backpressu
 
 ## Takeoff stores and validation hold
 
-Takeoff gross weight captures store and fuel weight but does not capture aerodynamic drag. The current takeoff model does not apply the mission drag index or a store-specific drag increment to runway distance or climb. When external stores are selected, the app therefore labels the takeoff result `UNVALIDATED` and suppresses a GO determination. Hot/high reduced-thrust conditions are also held unvalidated because the static RPM-to-fuel-flow reference and reduced-thrust distance correction did not match the Henderson +40 C DCS tests. The app continues to display provisional values to support controlled calibration, but they are not presented as validated runway guidance.
+Takeoff gross weight captures store and fuel weight but does not capture aerodynamic drag. The current takeoff model does not apply the mission drag index or a store-specific drag increment to runway distance or climb. When external stores are selected, the app therefore labels the takeoff result `UNVALIDATED` and suppresses a GO determination. Hot/high reduced-thrust conditions are also held unvalidated. The Henderson fuel-flow observations are now used locally, but the thrust and runway-distance correction still does not reproduce the +40 C takeoff tests. The app continues to display provisional values to support controlled calibration, but they are not presented as validated runway guidance.
+
+The corrected 62,000 lb MANEUVER run records rotation at 143 KIAS and 5401 ft, followed by liftoff at 6101 ft. This is a 700 ft rotation segment. It is an all-engines-operating liftoff observation and must not be mislabeled as accelerate-go or 50-ft distance.
 
 The pilot does not enter a drag index. The Streamlit UI provides loadout presets and a DCS-style station panel for stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. Gross weight remains a direct DCS input, so the app does not add store weight a second time. The station selections generate low-confidence internal model drag units for climb, cruise, and energy calculations. These units are engineering estimates, not a released F-14 drag-index table, and appear only as supporting model provenance rather than a user input.
 

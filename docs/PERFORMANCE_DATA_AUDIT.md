@@ -108,6 +108,14 @@ Reduced dry thrust between idle and MIL is modeled nonlinearly and marked ESTIMA
 
 Many rows explicitly contain “verify in DCS” or real-world-data notes. The database is useful operationally, but its notes remain visible because it is not uniformly authoritative for DCS geometry.
 
+### 10. User DCS observation register
+
+`data/dcs_engine_observations.csv` retains the user-confirmed Batumi static engine sweep and the three Henderson +40 C takeoff-power observations. `data/dcs_takeoff_test_log.csv` retains the current Henderson trim/runway tests and one approximate historical Nellis range.
+
+The Nellis 70,000 lb UP/85% row is retained as prior-chat evidence only: approximately 189 KIAS at rotation and approximately 7600-8000 ft to liftoff. Its exact weather, loadout, trim, fuel flow, and measurement method were not preserved, so it is not used as a precise calibration anchor.
+
+Older Henderson and Mount Pleasant figures that could not be separated from app outputs, stale UI behavior, or expected values are excluded from the observation register. App-calculated distances must never be entered as measured DCS results.
+
 ## Known bad legacy data
 
 ### `data/f14_aero.csv`
@@ -159,10 +167,10 @@ Preferred sequence:
 3. Pre-roll trim, rotation, and OEI V2+15 validation versus weight, CG, and flap configuration
 4. AEO and OEI climb gradients versus configuration and RPM
 5. Full climb performance charts through cruise altitude
-6. Cruise fuel-flow validation at multiple weights/drag indices
+6. Cruise fuel-flow validation at multiple weights and station loadouts
 7. Landing on-speed IAS versus weight in DCS
 8. Wet-runway reject and landing tests
-9. Accurate drag-index mapping to aerodynamic drag
+9. Accurate station-loadout mapping to aerodynamic drag
 10. F-14B(U)-specific differences, if DCS behavior diverges from baseline F-14B
 
 ## Interpretation standard

@@ -19,7 +19,7 @@
       "set_before_takeoff_roll": true,
       "rotation_target_speed": "V2",
       "integrated_trim_full_flap_te_up_deg": 3.0,
-      "schedule_method": "explicit configuration schedule with DCS-observation-calibrated MANEUVER value",
+      "schedule_method": "explicit provisional configuration schedule under controlled DCS testing",
       "schedule_anu": {"UP": 3.0, "MANEUVER": 6.0, "FULL": 0.0},
       "maneuver_observed_band_anu": [5.0, 7.0],
       "rotation_control_objective": "easy rotation at V2 without excessive backpressure",
@@ -40,7 +40,11 @@
   },
   "takeoff_validation_holds": {
     "external_store_drag": "Takeoff drag is not yet modeled; loaded takeoff results are UNVALIDATED",
-    "hot_high_reduced_thrust": "Static RPM/FF mapping and distance correction did not match Henderson +40 C tests"
+    "hot_high_reduced_thrust": "Henderson FF observations are applied only within 95-98% RPM; thrust and runway-distance correction remain unvalidated"
+  },
+  "engine_observation_sets": {
+    "batumi_standard": "71/80/85/90/95/99% RPM with 1200/2500/3400/4800/7000/10000 pph per engine",
+    "henderson_hot_high": "PA 2492 ft assumed from 29.92, +40 C: 95% mean 5250 pph from two runs; 98% 6000 pph from one run"
   },
   "calibration": {
     "condition": "65000 lb, approximately sea level, 15 C, 29.92 inHg, calm, dry, MIL",

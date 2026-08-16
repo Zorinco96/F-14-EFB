@@ -40,6 +40,26 @@ def data_dir(tmp_path: Path) -> Path:
         {"FF_pph": 7000, "RPM_pct": 95},
         {"FF_pph": 10000, "RPM_pct": 99},
     ]).to_csv(tmp_path / "f110_ff_to_rpm_knots.csv", index=False)
+    pd.DataFrame([
+        {
+            "pressure_altitude_ft": 2492,
+            "oat_c": 40,
+            "rpm_pct": 95,
+            "ff_pph_per_engine": 5250,
+            "n_runs": 2,
+            "source_note": "test Henderson mean",
+            "validation_scope": "test scope",
+        },
+        {
+            "pressure_altitude_ft": 2492,
+            "oat_c": 40,
+            "rpm_pct": 98,
+            "ff_pph_per_engine": 6000,
+            "n_runs": 1,
+            "source_note": "test Henderson point",
+            "validation_scope": "test scope",
+        },
+    ]).to_csv(tmp_path / "f110_takeoff_ff_environment.csv", index=False)
 
     landing_rows = [{
         "flap_setting": "DOWN", "gross_weight_lbs": 54000,

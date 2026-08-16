@@ -34,7 +34,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - V1 reference, balanced-field-style V1 sweep, Vr, V2, Vfs, and Vs reference
 - integer V-speed presentation
 - resolved MILITARY or REDUCED thrust label
-- target EIG RPM (N2) and calibrated static fuel-flow reference per engine
+- separate commanded RPM and observed EIG RPM/FF references, using Batumi static and local Henderson +40 C observations
 - flap-compensated takeoff pitch-trim setting established before the roll, targeting an easy rotation at V2 without excessive backpressure
 - separate OEI climb target of V2+15, gear up, with MILITARY thrust on the operating engine
 - explicit warning that trim does not command or guarantee climb airspeed
@@ -46,6 +46,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - direct DCS gross-weight input
 - DCS-style station loadout or loadout preset; internal drag units are derived automatically
 - validation hold for external-store and hot/high reduced-thrust takeoff conditions that are not yet calibrated
+- in-app DCS engine and takeoff observation tables
 - explicit provenance/confidence output
 
 ### Climb

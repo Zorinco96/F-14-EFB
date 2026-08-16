@@ -1,0 +1,3 @@
+pressure_altitude_ft,oat_c,rpm_pct,ff_pph_per_engine,n_runs,source_note,validation_scope
+2492,40,95,5250,2,"Mean of two user-reported Henderson F-14B(U) static-thrust takeoff observations: 5000 and 5500 pph per engine","Use only near Henderson hot/high condition and 95-98% RPM"
+2492,40,98,6000,1,"One user-reported Henderson F-14B(U) static-thrust takeoff observation","Use only near Henderson hot/high condition and 95-98% RPM"

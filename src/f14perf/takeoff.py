@@ -272,7 +272,11 @@ class TakeoffModel:
         climb, climb_oei, climb_prov = self._calibrated_climb(
             flaps, rpm_pct, inputs.weight_lb, pa, inputs.environment.oat_c, corrected["v2_kt"]
         )
-        eig_reference = self.engine.takeoff_eig_reference(rpm_pct)
+        eig_reference = self.engine.takeoff_eig_reference(
+            rpm_pct,
+            pressure_altitude_ft=pa,
+            oat_c=inputs.environment.oat_c,
+        )
         thrust_setting = (
             "MILITARY" if rpm_pct >= 99.5 else f"REDUCED ({rpm_pct:.0f}% RPM)"
         )
@@ -302,9 +306,9 @@ class TakeoffModel:
             )
         if hot_high_reduced_thrust:
             warnings.append(
-                "Hot/high reduced-thrust takeoff performance is unvalidated. The current static "
-                "RPM-to-fuel-flow reference and reduced-thrust distance correction did not match "
-                "the Henderson +40 C DCS tests."
+                "Hot/high reduced-thrust runway performance is unvalidated. Fuel-flow guidance "
+                "uses the limited Henderson observations within the tested 95-98% RPM envelope, "
+                "but the thrust and runway-distance correction is not calibrated."
             )
 
         if rpm_pct < RPM_FLOOR[flaps]:
@@ -353,6 +357,7 @@ class TakeoffModel:
             headwind_kt=round(raw_headwind, 1),
             credited_headwind_kt=round(credited_headwind, 1),
             thrust_setting=thrust_setting,
+            eig_reference_rpm_pct=round(eig_reference.rpm_pct, 1),
             fuel_flow_pph_per_engine=round(eig_reference.fuel_flow_pph_per_engine),
             fuel_flow_pph_total=round(eig_reference.fuel_flow_pph_per_engine * 2.0),
             stabilizer_trim_anu=takeoff_trim_anu,
@@ -380,7 +385,7 @@ class TakeoffModel:
                 f"Runway planning factor: {inputs.runway_factor:.2f}.",
                 f"Wind policy: {inputs.headwind_credit_pct:.0f}% headwind credit / "
                 f"{inputs.tailwind_penalty_pct:.0f}% tailwind penalty.",
-                "Fuel-flow guidance is a per-engine sea-level static DCS EIG calibration reference, not an environment-corrected target.",
+                f"Fuel-flow guidance is per engine and advisory. Source: {eig_reference.provenance.source}.",
                 "AUTO never selects afterburner for takeoff.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",

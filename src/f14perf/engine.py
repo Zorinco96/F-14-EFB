@@ -28,6 +28,14 @@ class F110Deck:
 
     REQUIRED = {"altitude_ft", "mach", "thrust_type", "thrust_lbf", "ff_pph"}
     TAKEOFF_FF_REQUIRED = {"rpm_pct", "ff_pph"}
+    TAKEOFF_FF_ENV_REQUIRED = {
+        "pressure_altitude_ft",
+        "oat_c",
+        "rpm_pct",
+        "ff_pph_per_engine",
+        "n_runs",
+        "source_note",
+    }
 
     def __init__(self, data_dir: Path | str | None = None):
         self.df = read_csv("F110_engine.csv", data_dir)
@@ -40,6 +48,18 @@ class F110Deck:
             self.takeoff_ff,
             self.TAKEOFF_FF_REQUIRED,
             "f110_ff_to_rpm_knots.csv",
+        )
+        self.takeoff_ff_environment = read_csv(
+            "f110_takeoff_ff_environment.csv",
+            data_dir,
+        )
+        self.takeoff_ff_environment.columns = [
+            str(c).strip().lower() for c in self.takeoff_ff_environment.columns
+        ]
+        require_columns(
+            self.takeoff_ff_environment,
+            self.TAKEOFF_FF_ENV_REQUIRED,
+            "f110_takeoff_ff_environment.csv",
         )
 
     def _base(self, altitude_ft: float, mach: float, mode: str) -> EnginePoint:
@@ -111,7 +131,12 @@ class F110Deck:
         )
         return EnginePoint(thrust, ff, rpm, prov)
 
-    def takeoff_eig_reference(self, rpm_pct: float) -> EnginePoint:
+    def takeoff_eig_reference(
+        self,
+        rpm_pct: float,
+        pressure_altitude_ft: float = 0.0,
+        oat_c: float = 15.0,
+    ) -> EnginePoint:
         """Return the calibrated static EIG fuel-flow reference for takeoff.
 
         The source knots are controlled DCS observations near sea level. The
@@ -121,6 +146,32 @@ class F110Deck:
         """
 
         commanded_rpm = max(70.0, min(100.0, float(rpm_pct)))
+        env = self.takeoff_ff_environment
+        reference_pa = float(env["pressure_altitude_ft"].median())
+        reference_oat = float(env["oat_c"].median())
+        env_rpm_min = float(env["rpm_pct"].min())
+        env_rpm_max = float(env["rpm_pct"].max())
+        near_environment_anchor = (
+            abs(float(pressure_altitude_ft) - reference_pa) <= 750.0
+            and abs(float(oat_c) - reference_oat) <= 5.0
+            and env_rpm_min <= commanded_rpm <= env_rpm_max
+        )
+        if near_environment_anchor:
+            lookup = regular_grid_interpolate(
+                env,
+                {"rpm_pct": commanded_rpm},
+                "ff_pph_per_engine",
+            )
+            total_runs = int(env["n_runs"].sum())
+            prov = Provenance(
+                Method.CALIBRATED,
+                "DCS Henderson hot/high F110 EIG observations",
+                f"{lookup.detail}; {total_runs} loaded-aircraft observations near "
+                f"PA {reference_pa:.0f} ft / {reference_oat:.0f} C",
+                "Low-medium; one environment and 95-98% RPM only",
+            )
+            return EnginePoint(0.0, lookup.value, commanded_rpm, prov)
+
         observed_rpm = max(
             float(self.takeoff_ff["rpm_pct"].min()),
             min(float(self.takeoff_ff["rpm_pct"].max()), commanded_rpm),
@@ -137,9 +188,9 @@ class F110Deck:
             Method.CALIBRATED,
             "DCS static F110 EIG fuel-flow calibration",
             note,
-            "Medium near the sea-level calibration knots; advisory away from them",
+            "Medium near the Batumi sea-level calibration knots; advisory away from them",
         )
-        return EnginePoint(0.0, lookup.value, commanded_rpm, prov)
+        return EnginePoint(0.0, lookup.value, observed_rpm, prov)
 
     def total(self, *args, engines: int = 2, **kwargs) -> EnginePoint:
         p = self.point(*args, **kwargs)
