@@ -21,6 +21,8 @@ st.set_page_config(page_title="F-14 EFB", page_icon="✈", layout="wide")
 st.title("F-14 EFB")
 st.caption("DCS World planning model • v3 • provenance-aware performance calculations")
 
+MODEL_REVISION = "2026-08-16-maneuver-trim-6"
+
 
 @st.cache_resource
 def airport_db():
@@ -28,7 +30,8 @@ def airport_db():
 
 
 @st.cache_resource
-def models():
+def models(model_revision: str):
+    _ = model_revision
     return {
         "takeoff_auto": AutoTakeoffSelector(),
         "takeoff": TakeoffModel(),
@@ -167,7 +170,7 @@ inputs = TakeoffInputs(
     tailwind_penalty_pct=tailwind_penalty,
 )
 
-m = models()
+m = models(MODEL_REVISION)
 
 try:
     takeoff = m["takeoff_auto"].select(inputs)
@@ -211,9 +214,10 @@ with takeoff_tab:
     c4.metric("Vfs", f"{takeoff.vfs_kt:.0f} kt")
     st.caption(f"Vs reference: {takeoff.vs_kt:.0f} KIAS")
     t1, t2, t3 = st.columns(3)
+    trim_band = getattr(takeoff, "stabilizer_trim_band_anu", None)
     trim_delta = (
-        f"DCS BAND {takeoff.stabilizer_trim_band_anu[0]:.1f}-{takeoff.stabilizer_trim_band_anu[1]:.1f}"
-        if takeoff.stabilizer_trim_band_anu
+        f"DCS BAND {trim_band[0]:.1f}-{trim_band[1]:.1f}"
+        if trim_band
         else "SET BEFORE ROLL"
     )
     t1.metric(
