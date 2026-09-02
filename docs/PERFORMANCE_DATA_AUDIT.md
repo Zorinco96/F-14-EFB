@@ -30,6 +30,16 @@ The following findings changed the application:
 
 These changes do not convert unverified legacy tables into validated data. They reduce false precision and make the remaining assumptions operationally visible.
 
+## September 2026 discrete-rating audit
+
+The follow-on audit made five additional corrections:
+
+1. The continuous takeoff FF slider and one-percent AUTO RPM search were removed. Takeoff accepts only DERATE 3, DERATE 2, DERATE 1, or MIL.
+2. The reduced-rating breakpoints are tied to the observed near-SL/ISA EIG knots at 85/90/95% and 3,400/4,800/7,000 PPH per engine. MIL retains the NAVAIR approximately 10,100 PPH/engine indication and 95-to-104-percent N2 range.
+3. Reduced-rating FF/RPM guidance is environment-bounded. The Henderson observations support a local DERATE 1 indication, but no general pressure-altitude/temperature law. AUTO retains MIL outside an observation envelope.
+4. NAVAIR Figure 14-1 was re-read in page context. It is an airspeed-indicator-failure reference, not a normal best-climb or optimum-cruise performance schedule. The AOA values remain visible only as alternate cues and no longer appear to validate modeled climb or cruise outputs.
+5. A maintained scenario battery now covers light, heavy, cold, hot, high, short-runway, tailwind, clean, fleet-defense, strike, external-tank, reduced-rating, MIL, and Henderson Tacview cases. Every case runs through takeoff, climb, cruise, and landing and has an expected safety state.
+
 ## Availability constraint
 
 The F-14B flight documentation references a separate performance supplement. That B/D performance volume is not included in this repository, and a complete unrestricted copy has not been established as a reliable public source for this project. As a result, v3 does not claim to recreate every F-14B NATOPS chart directly.
@@ -112,13 +122,15 @@ Normal on-speed IAS now uses NAVAIR 01-F14AAP-1 Figure 11-8, whose data basis is
 
 The table contains altitude and Mach values versus gross weight and drag index. Its prior source note cited page 241 of NAVAIR 01-F14AAP-1B. That document is a short pocket checklist and cannot contain the cited page, so the citation was removed during the 2026-08-16 audit.
 
-V3 retains the values only as an unverified DCS trial target, rounds altitude to the nearest 1,000 ft flight level, and recomputes KIAS/TAS at the rounded level. FF per engine, RPM, and specific range are model estimates. NATOPS Figure 14-1 supports 8 units AOA at optimum cruise altitude but does not validate these altitude or Mach entries.
+V3 retains the values only as an unverified DCS trial target, rounds altitude to the nearest 1,000 ft flight level, and recomputes KIAS/TAS at the rounded level. FF per engine, RPM, and specific range are model estimates. NAVAIR Figure 14-1 lists 8 units AOA at optimum cruise altitude only as an alternate cue following an airspeed-indicator failure; it does not validate these altitude or Mach entries.
 
 ### 8. F110 deck: `data/F110_engine.csv`
 
 The file contains IDLE, MIL, and AB thrust/fuel-flow points versus altitude and Mach. V3 treats it as a legacy simulation engine deck, not a released certification/NATOPS engine deck.
 
 Reduced dry thrust between idle and MIL is modeled nonlinearly and marked ESTIMATED.
+
+`data/f110_takeoff_ratings.csv` is the operational rating registry. Its three reduced choices must match exact knots in `data/f110_ff_to_rpm_knots.csv`; the loader rejects a mismatch. The rating names are project-standardized DCS selections, not released F110 ratings. The internal nonlinear deck remains only the provisional runway-scaling layer.
 
 ### 9. DCS airport database
 
@@ -131,6 +143,8 @@ Many rows explicitly contain “verify in DCS” or real-world-data notes. The d
 `data/dcs_engine_observations.csv` retains the user-confirmed Batumi static engine sweep and the three Henderson +40 C takeoff-power observations. `data/dcs_takeoff_test_log.csv` retains the current Henderson trim/runway tests and one approximate historical Nellis range.
 
 The Nellis 70,000 lb UP/85% row is retained as prior-chat evidence only: approximately 189 KIAS at rotation and approximately 7600-8000 ft to liftoff. Its exact weather, loadout, trim, fuel flow, and measurement method were not preserved, so it is not used as a precise calibration anchor.
+
+The attached Tacviews do not include per-engine fuel flow or RPM. They cannot validate either quantity. Their valid role is event timing, IAS, attitude, flap/throttle ratios, position, and brake-release-to-liftoff motion distance. The correlated Henderson sequence remains an AEO ground-roll check, not an engine calibration or accelerate-go test.
 
 Older Henderson and Mount Pleasant figures that could not be separated from app outputs, stale UI behavior, or expected values are excluded from the observation register. App-calculated distances must never be entered as measured DCS results.
 
@@ -184,12 +198,13 @@ Preferred sequence:
 2. Maneuver-flap takeoff grid across weight/PA/OAT
 3. Pre-roll trim, rotation, and OEI V2+15 validation versus weight, CG, and flap configuration
 4. AEO and OEI climb gradients versus configuration and RPM
-5. Full climb performance charts through cruise altitude
-6. Cruise fuel-flow validation at multiple weights and station loadouts
-7. Landing on-speed IAS versus weight in DCS
-8. Wet-runway reject and landing tests
-9. Accurate station-loadout mapping to aerodynamic drag
-10. F-14B(U)-specific differences, if DCS behavior diverges from baseline F-14B
+5. Repeated FF/RPM static sweeps across pressure altitude and temperature, with synchronized acceleration or thrust evidence
+6. Full climb performance charts through cruise altitude
+7. Cruise fuel-flow validation at multiple weights and station loadouts
+8. Landing on-speed IAS versus weight in DCS
+9. Wet-runway reject and landing tests
+10. Accurate station-loadout mapping to aerodynamic drag
+11. F-14B(U)-specific differences, if DCS behavior diverges from baseline F-14B
 
 Until items 5 and 6 are calibrated in DCS, climb rates remain conservative planning allowances and cruise RPM/fuel flow remain guarded estimates.
 

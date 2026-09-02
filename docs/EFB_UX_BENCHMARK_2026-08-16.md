@@ -1,5 +1,7 @@
 # EFB UX benchmark, 2026-08-16
 
+> Historical baseline. The current interface audit is `EFB_UX_BENCHMARK_2026-09-01.md`.
+
 ## Benchmark set
 
 The interface was compared with four common EFB patterns:

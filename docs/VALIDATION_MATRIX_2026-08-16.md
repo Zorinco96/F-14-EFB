@@ -1,5 +1,7 @@
 # Validation matrix, 2026-08-16
 
+> Historical baseline. The current release matrix is `VALIDATION_MATRIX_2026-09-01.md`.
+
 ## Release rule
 
 The app must fail closed when an input is outside the legacy takeoff grid, external-store takeoff drag is unmodeled, or hot/high reduced thrust is selected. A positive numerical margin is never labeled a GO result.

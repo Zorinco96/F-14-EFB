@@ -25,11 +25,20 @@ The outputs are:
 
 Maneuver flaps use the established 65,000 lb DCS anchor and inherit environmental scaling from the UP table.
 
-### Reduced thrust
+### Discrete dry ratings
 
-The F110 deck supplies MIL and idle endpoints. Reduced dry thrust uses a nonlinear RPM interpolation between those endpoints. Takeoff distance increases with reduced thrust using an empirical acceleration exponent.
+The operational takeoff interface no longer accepts a continuously variable FF or RPM. `data/f110_takeoff_ratings.csv` defines four fixed choices in increasing thrust order:
 
-This is a calibration model. It is not a claim that engine thrust is a direct algebraic function of indicated RPM in the real aircraft.
+| Rating | Nominal model knot | Near-SL/ISA FF per engine | Evidence |
+| --- | ---: | ---: | --- |
+| DERATE 3 | 85% | 3,400 PPH | User-confirmed Batumi static DCS EIG observation |
+| DERATE 2 | 90% | 4,800 PPH | User-confirmed Batumi static DCS EIG observation |
+| DERATE 1 | 95% | 7,000 PPH | Batumi static observation plus limited Henderson 95% evidence |
+| MIL | MIL detent | approximately 10,100 PPH | NAVAIR 01-F14AAP-1 normal on-deck indication |
+
+The names describe standardized selections, not certified F110 thrust ratings. The legacy F110 deck still supplies a nonlinear thrust ratio internally to scale the provisional runway model, but arbitrary takeoff RPM values are rejected. That internal correction is ESTIMATED and does not establish that indicated RPM is a direct measure of delivered thrust.
+
+Near the Henderson +40 C observation point, DERATE 1 uses the local 5,250 PPH/engine aggregate at approximately 95% N2. The lower ratings have no local observation and are not condition-calibrated there. Away from the Batumi or Henderson observation envelopes, AUTO retains MIL rather than inventing an atmospheric FF correction.
 
 ### Balanced-field-style V1
 
@@ -63,23 +72,25 @@ Configuration priority:
 2. MANEUVER
 3. FULL
 
-RPM is searched upward from:
+AUTO searches only the discrete choices permitted for each configuration:
 
-- UP 85%
-- MANEUVER 90%
-- FULL 96%
+- UP: DERATE 3, DERATE 2, DERATE 1, MIL
+- MANEUVER: DERATE 2, DERATE 1, MIL
+- FULL: MIL
 
-The first candidate satisfying runway limits and the AEO climb gate is selected.
+The first condition-calibrated candidate satisfying runway limits and the AEO climb gate is selected. If no calibrated candidate clears the gates, AUTO retains the best MIL result as the fail-safe dry setting and reports the limiting state.
 
 Afterburner is never selected by AUTO.
 
 ## Engine display guidance
 
-The selected dry-thrust command is displayed as either MILITARY or REDUCED (XX% RPM). The F-14B engine instrument group displays high-pressure compressor RPM (N2) and per-engine fuel flow. The takeoff card separates commanded RPM from the observed EIG reference. For MIL, a 100% model command is paired with the user-observed approximately 99% EIG RPM and 10,000 pph per engine rather than pretending the cockpit indication was exactly 100%.
+Fuel flow per engine is the primary takeoff setpoint. RPM is a secondary cross-check. This is a cockpit-workload decision supported by the discrete FF targets and by the observed environmental variation in the FF/RPM relationship. It is not a claim that fuel flow alone proves actual thrust.
+
+The F-14B engine instrument group displays high-pressure compressor RPM (N2) and per-engine fuel flow. For MIL, the app uses the NAVAIR normal on-deck indication of approximately 10,100 PPH per engine and a 95-to-104-percent N2 cross-check. For reduced ratings, the card shows the observed FF target for the applicable environment and an approximate RPM cross-check. It never implies that one RPM value represents identical thrust in all atmospheres.
 
 `f110_ff_to_rpm_knots.csv` contains the user-confirmed Batumi standard-day static sweep: 71/80/85/90/95/99% RPM at approximately 1200/2500/3400/4800/7000/10000 pph per engine. A 100% MIL command uses the highest measured 99% EIG knot instead of extrapolating beyond the calibration.
 
-`f110_takeoff_ff_environment.csv` adds the Henderson +40 C observations. Near the tested condition and only from 95 through 98% RPM, the app uses 5250 pph at 95% (the mean of 5000 and 5500) and 6000 pph at 98%. This is a local interpolation from three observations, not a general altitude/temperature fuel-flow law. Outside that narrow envelope, the app retains the Batumi static reference and labels it advisory.
+`f110_takeoff_ff_environment.csv` adds the Henderson +40 C observations. Near the tested condition and only from 95 through 98% RPM, the underlying evidence layer retains 5,250 PPH at 95% (the mean of 5,000 and 5,500) and 6,000 PPH at 98%. Only the 95% point corresponds to a standardized rating. This is local indication evidence, not a general altitude/temperature fuel-flow or thrust law.
 
 ## Stabilizer trim
 
@@ -101,7 +112,9 @@ Takeoff gross weight captures store and fuel weight but does not capture aerodyn
 
 The corrected 62,000 lb MANEUVER run records rotation at 143 KIAS and 5401 ft, followed by liftoff at 6101 ft. This is a 700 ft rotation segment. It is an all-engines-operating liftoff observation and must not be mislabeled as accelerate-go or 50-ft distance.
 
-The pilot does not enter a drag index. The Streamlit UI provides loadout presets and a DCS-style station panel for stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. Gross weight remains a direct DCS input, so the app does not add store weight a second time. The station selections generate low-confidence internal model drag units for climb, cruise, and energy calculations. These units are engineering estimates, not a released F-14 drag-index table, and appear only as supporting model provenance rather than a user input.
+The pilot does not enter a drag index. The Streamlit UI provides Heatblur SCL-based presets and a DCS-style station panel for stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. Gross weight remains a direct DCS input, so the app does not add store weight a second time. The selected expendable-store credit is calculated automatically for recovery planning.
+
+Station selections generate low-confidence internal model drag units for climb, cruise, and energy calculations. These units are engineering estimates, not a released F-14 drag-index table. NAVAIR Figure 14-1 directly identifies only two configuration references: DI 8 for four AIM-7 and DI 100 for six AIM-54 plus two 267-gallon tanks. The app recognizes those exact combinations but does not invent a unique per-store decomposition from two aggregate points.
 
 The absolute V2 values in the active configuration-specific takeoff model do not use the same baseline as the legacy `vspeeds.csv` table. V3 uses only the legacy Vfs-to-V2 spread and applies it to the active V2:
 
@@ -132,10 +145,13 @@ Each profile reports:
 
 - IAS, TAS, RPM, planning rate of climb, gradient, and fuel flow per engine by altitude
 - guarded elapsed time to cruise altitude
+- guarded distance to cruise altitude
 - conservative two-engine fuel burned to cruise altitude
 - the number of altitude segments that cannot meet the selected gradient gate
 
-The legacy F110 deck supplies only the per-engine fuel-flow estimate. The low-order F-14 aerodynamic polar is no longer used to predict operational climb rate. Both schedules are ESTIMATED DCS planning products and are biased toward time and fuel margin.
+The legacy F110 deck supplies only the per-engine fuel-flow estimate. The low-order F-14 aerodynamic polar is no longer used to predict operational climb rate. Both schedules are ESTIMATED DCS planning products and are biased toward time, distance, and fuel margin.
+
+NAVAIR Figure 14-1 is an airspeed-indicator-failure figure. Its 6.0-to-9.5-unit MIL-climb values are retained only as alternate AOA cues and do not validate the internal 250/300/M0.72 test schedule, rate, time, distance, or fuel.
 
 ## Landing
 
@@ -158,6 +174,8 @@ Maximum fuel values are rounded down to the nearest 100 lb. Tanks, pods, racks, 
 Optimum altitude and Mach use the legacy cruise table. Raw altitude is rounded to the nearest 1,000 ft usable flight level before the display condition is calculated.
 
 The low-order aerodynamic model determines required thrust at the rounded flight level. The F110 deck is then searched for the lowest modeled dry RPM that meets drag. Because that one-percent equilibrium result is not a cockpit calibration, the app rounds the initial RPM upward to 5-percent increments, recomputes fuel flow at that setting, and rounds fuel flow upward to 250 PPH per engine. Specific range and endurance use the two-engine aircraft total internally and remain estimates.
+
+No maximum-range, normal, or high-speed mode is promoted as validated. NAVAIR Figure 14-1 is an airspeed-indicator-failure figure; its 8-unit optimum-altitude value is an alternate AOA cue and does not validate the legacy table's altitude, Mach, FF, or RPM.
 
 ## Maneuver geometry
 

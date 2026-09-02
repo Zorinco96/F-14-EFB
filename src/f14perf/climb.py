@@ -181,6 +181,7 @@ class ClimbModel:
         previous_altitude = max(0.0, start_alt_ft - 1000.0)
         total_minutes = 0.0
         fuel_burn_lb = 0.0
+        distance_nm = 0.0
         altitude_gain_ft = 0.0
         for point in points:
             segment_ft = max(0.0, point.altitude_ft - previous_altitude)
@@ -188,6 +189,7 @@ class ClimbModel:
             segment_minutes = segment_ft / max(100.0, point.roc_fpm)
             total_minutes += segment_minutes
             fuel_burn_lb += point.fuel_flow_pph_total * segment_minutes / 60.0
+            distance_nm += point.tas_kt * segment_minutes / 60.0
             altitude_gain_ft += segment_ft
 
         unmet_segments = sum(
@@ -196,11 +198,11 @@ class ClimbModel:
         )
         rpm_label = "MIL" if strategy_key == "MINIMUM_TIME" else "95% dry"
         notes = [
-            "NATOPS Figure 14-1 technique is 6.0 units AOA at sea level increasing to 9.5 at combat ceiling for a MIL climb.",
+            "NATOPS Figure 14-1 gives 6.0 units AOA at sea level increasing to 9.5 at combat ceiling for a MIL climb only as an alternate cue following an airspeed-indicator failure.",
             f"The internal {rpm_label} time/fuel integration uses 250 KIAS through 10,000 ft, then 300 KIAS to the Mach 0.72 crossover; this is an engineering assumption, not a published pilot cue.",
-            "Rates are conservative mission-planning allowances. They are not maximum-rate predictions.",
+            "Rate, time, distance, and fuel are conservative mission-planning allowances. They are not NATOPS chart outputs or maximum-rate predictions.",
             "Displayed fuel flow is PPH per engine; profile fuel burn is the two-engine aircraft total.",
-            "Elapsed time is rounded up to a whole minute and fuel is rounded up to 500 lb to avoid false precision.",
+            "Elapsed time is rounded up to a whole minute, distance to 5 NM, and fuel to 500 lb to avoid false precision.",
         ]
         if unmet_segments:
             notes.append(f"{unmet_segments} segment(s) through 10,000 ft fall below the selected planning gradient.")
@@ -217,6 +219,7 @@ class ClimbModel:
             points=points,
             time_min=math.ceil(total_minutes),
             fuel_burn_lb=math.ceil(fuel_burn_lb / 500.0) * 500,
+            distance_nm=math.ceil(distance_nm / 5.0) * 5.0,
             altitude_gain_ft=round(altitude_gain_ft),
             target_gradient_ft_nm=round(target_gradient_ft_nm),
             unmet_segments=unmet_segments,

@@ -36,6 +36,9 @@ class TakeoffInputs:
     runway: Runway
     flaps: str = "AUTO"
     thrust: str = "AUTO"
+    thrust_rating: Optional[str] = None
+    # Backward-compatible input for callers that still pass one of the exact
+    # discrete rating knots. Arbitrary takeoff RPM values are rejected.
     rpm_pct: Optional[float] = None
     runway_factor: float = 1.15
     climb_target_ft_nm: float = 300.0
@@ -68,6 +71,11 @@ class TakeoffResult:
     provenance: Provenance
     credited_headwind_kt: float = 0.0
     thrust_setting: str = "MILITARY"
+    thrust_rating_id: str = "MIL"
+    thrust_rating_order: int = 0
+    thrust_rating_condition_calibrated: bool = True
+    rpm_reference: str = "95-104% N2"
+    auto_selected: bool = False
     eig_reference_rpm_pct: float = 0.0
     fuel_flow_pph_per_engine: float = 0.0
     fuel_flow_pph_total: float = 0.0
@@ -105,6 +113,7 @@ class ClimbProfile:
     points: list[ClimbPoint]
     time_min: float
     fuel_burn_lb: float
+    distance_nm: float
     altitude_gain_ft: float
     target_gradient_ft_nm: float
     unmet_segments: int

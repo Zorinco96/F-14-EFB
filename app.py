@@ -13,7 +13,7 @@ from src.f14perf.cruise import CruiseModel
 from src.f14perf.energy import EnergyModel
 from src.f14perf.engine import F110Deck
 from src.f14perf.fuel import FuelModel
-from src.f14perf.kneeboard import render_kneeboard_png
+from src.f14perf.kneeboard import render_kneeboard_png, render_mission_card_pdf
 from src.f14perf.landing import LandingModel
 from src.f14perf.loadout import (
     LOADOUT_PRESETS,
@@ -42,14 +42,19 @@ st.markdown(
     .stTabs [data-baseweb="tab-list"] {gap: 0.25rem;}
     .stTabs [data-baseweb="tab"] {min-height: 2.8rem;}
     div[data-testid="stStatusWidget"] {border-radius: 0.5rem;}
+    .efb-flow {color: #9fb3c8; font-size: 0.78rem; letter-spacing: 0.08em; margin-top: -0.4rem; margin-bottom: 1rem;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 st.title("F-14 EFB")
 st.caption("vTF-77 DCS mission planning and kneeboard generator")
+st.markdown(
+    '<div class="efb-flow">AIRCRAFT &gt; LOADOUT &gt; AIRPORT &gt; TAKEOFF &gt; CLIMB &gt; CRUISE &gt; LANDING &gt; MISSION CARD</div>',
+    unsafe_allow_html=True,
+)
 
-MODEL_REVISION = "2026-08-16-tacview-reconciliation"
+MODEL_REVISION = "2026-09-01-discrete-ff-ratings"
 
 
 @st.cache_resource
@@ -118,6 +123,7 @@ with st.sidebar.expander("Mission essentials", expanded=True):
     joker_margin = st.number_input("JOKER above BINGO (lb)", 0, 10_000, 2_000, 500)
 
 with st.sidebar.expander("Aircraft and loadout", expanded=False):
+    aircraft_variant = st.selectbox("Variant", ["F-14B(U)", "F-14B"])
     loadout_preset = st.selectbox(
         "Preset",
         [*LOADOUT_PRESETS, "Custom station loadout"],
@@ -136,6 +142,16 @@ with st.sidebar.expander("Aircraft and loadout", expanded=False):
     else:
         loadout = loadout_from_preset(loadout_preset)
     st.caption(loadout.summary)
+    st.caption(
+        f"{loadout.loaded_store_count} loaded station(s) | "
+        f"{loadout.expendable_credit_weight_lb:,.0f} lb conservative expendable credit"
+    )
+    st.caption("Enter the DCS gross weight, which already includes fuel, racks, pods, tanks, and weapons. The EFB does not add store weight a second time.")
+    if loadout.natops_drag_reference is not None:
+        natops_di, natops_di_source = loadout.natops_drag_reference
+        st.caption(f"Published reference: DI {natops_di:.0f} | {natops_di_source}")
+    else:
+        st.caption("Aerodynamic penalty uses provisional model units; takeoff with stores remains on hold.")
 
 drag_index = loadout.model_drag_index
 
@@ -235,34 +251,33 @@ with st.sidebar.expander("Weather", expanded=True):
 
 with st.sidebar.expander("Takeoff setup", expanded=True):
     flaps = st.selectbox("Takeoff flaps", ["UP", "MANEUVER", "FULL"])
-    power_setting = st.radio(
-        "Takeoff power",
-        ["MIL", "Reduced dry test"],
-        help="FF is the primary cockpit cue. RPM and nozzle position are cross-checks.",
+    rating_options_by_flaps = {
+        "UP": ["AUTO", "DERATE 3", "DERATE 2", "DERATE 1", "MIL"],
+        "MANEUVER": ["AUTO", "DERATE 2", "DERATE 1", "MIL"],
+        "FULL": ["AUTO", "MIL"],
+    }
+    power_setting = st.selectbox(
+        "Takeoff thrust rating",
+        rating_options_by_flaps[flaps],
+        help="AUTO selects the lowest condition-calibrated discrete dry rating that clears the runway and AEO climb gates. FF per engine is the primary cockpit cue.",
     )
-    if power_setting == "MIL":
-        rpm = 100.0
-        st.info("SET MIL: approximately 10,100 PPH per engine. Cross-check 95-104% N2 and 3-10% nozzle.")
+    if power_setting == "AUTO":
+        st.caption("AUTO searches only standardized dry ratings. Afterburner is excluded.")
     else:
-        target_ff = st.slider(
-            "Target FF per engine (PPH)",
-            3_400,
-            10_000,
-            6_000,
-            100,
-            help="DCS test setting. The app converts the selected FF to an expected RPM using the limited observation set.",
-        )
         field_elev_for_power = runway.elevation_ft
         if field_elev_for_power is None:
             field_elev_for_power = environment.field_elevation_ft
         takeoff_pa = pressure_altitude_ft(field_elev_for_power, environment.qnh_inhg)
-        inverse_power = takeoff_engine().rpm_for_takeoff_ff(
-            target_ff,
+        rating_preview = takeoff_engine().takeoff_rating(
+            power_setting,
             takeoff_pa,
             environment.oat_c,
         )
-        rpm = float(inverse_power.rpm_pct)
-        st.caption(f"Expected EIG cross-check: approximately {rpm:.1f}% N2. Reduced-power runway performance is test-only.")
+        calibration_label = "condition-calibrated" if rating_preview.condition_calibrated else "standard-point reference only"
+        st.info(
+            f"THRUST SET: {rating_preview.fuel_flow_pph_per_engine:,.0f} PPH / ENG | "
+            f"RPM cross-check: {rating_preview.rpm_reference} | {calibration_label}"
+        )
 
 with st.sidebar.expander("Advanced planning policy", expanded=False):
     runway_factor = st.number_input("Runway factor", 1.00, 1.50, 1.15, 0.01)
@@ -279,8 +294,8 @@ inputs = TakeoffInputs(
     environment=environment,
     runway=runway,
     flaps=flaps,
-    thrust="MANUAL",
-    rpm_pct=float(rpm),
+    thrust="AUTO" if power_setting == "AUTO" else "MANUAL",
+    thrust_rating=None if power_setting == "AUTO" else power_setting,
     runway_factor=float(runway_factor),
     climb_target_ft_nm=float(climb_gate),
     headwind_credit_pct=headwind_credit,
@@ -292,6 +307,7 @@ m = models(MODEL_REVISION)
 dcs_engine_observations = pd.read_csv("data/dcs_engine_observations.csv")
 dcs_takeoff_observations = pd.read_csv("data/dcs_takeoff_test_log.csv")
 tacview_takeoff_motion = pd.read_csv("data/tacview_takeoff_motion.csv")
+validation_scenarios = pd.read_csv("data/validation_scenarios.csv")
 
 try:
     takeoff = m["takeoff_auto"].select(inputs)
@@ -366,9 +382,9 @@ if landing_weight > landing_fuel.field_limit_lb:
 advisories = list(dict.fromkeys(note for note in advisories if note))
 
 summary1, summary2, summary3, summary4 = st.columns(4)
-summary1.metric("Departure", takeoff_status, f"{takeoff.flaps} / {takeoff.thrust_setting}")
+summary1.metric("Departure", takeoff_status, f"{runway.name} | {takeoff.flaps}")
 summary2.metric(
-    "SET FF / engine",
+    f"{takeoff.thrust_setting} - SET FF / engine",
     f"{takeoff.fuel_flow_pph_per_engine:,.0f} PPH",
     "PRIMARY TAKEOFF THRUST CUE",
 )
@@ -379,13 +395,13 @@ summary3.metric(
 )
 summary4.metric("Recovery", f"{landing_weight/1000:.1f}K lb", "15 units AOA")
 
-mission_tab, takeoff_tab, enroute_tab, recovery_tab, maneuver_tab, kneeboard_tab, data_tab = st.tabs(
-    ["Quick Plan", "Takeoff", "Enroute", "Recovery", "Tools", "Kneeboard", "Data"]
+overview_tab, takeoff_tab, climb_tab, cruise_tab, landing_tab, tools_tab, card_tab, data_tab = st.tabs(
+    ["Overview", "Takeoff", "Climb", "Cruise", "Landing", "Tools", "Mission Card", "Data"]
 )
 
-with mission_tab:
+with overview_tab:
     if takeoff_status == "PLANNING HOLD":
-        st.warning("Planning hold: the selected stores or hot/high reduced-thrust condition is outside the validated DCS takeoff set.")
+        st.warning("Planning hold: at least one selected condition is outside the observed or modeled takeoff envelope. Review the notes before using the references.")
     elif takeoff_status == "LIMIT EXCEEDED":
         st.error("The legacy takeoff result exceeds the configured runway or climb planning limit.")
     else:
@@ -419,7 +435,7 @@ with mission_tab:
         [
             {
                 "Phase": "Climb allowance",
-                "Plan": f"{climb_profile.time_min:.0f} min / {climb_profile.fuel_burn_lb:,.0f} lb total",
+                "Plan": f"{climb_profile.time_min:.0f} min / {climb_profile.distance_nm:,.0f} NM / {climb_profile.fuel_burn_lb:,.0f} lb total",
                 "Data status": "Guarded model",
             },
             {
@@ -455,13 +471,14 @@ with takeoff_tab:
     p1, p2, p3, p4 = st.columns(4)
     p1.metric("Flaps", takeoff.flaps)
     p2.metric("SET FF / engine", f"{takeoff.fuel_flow_pph_per_engine:,.0f} PPH", "PRIMARY")
-    if takeoff.rpm_pct >= 99.5:
-        p3.metric("RPM cross-check", "95-104% N2", "matched tapes")
+    if takeoff.thrust_rating_id == "MIL":
+        p3.metric("RPM cross-check", takeoff.rpm_reference, "secondary; matched tapes")
         p4.metric("Nozzle cross-check", "3-10%", "MIL")
     else:
-        p3.metric("RPM cross-check", f"~{takeoff.eig_reference_rpm_pct:.1f}% N2", "observation-derived")
-        p4.metric("Power status", "TEST ONLY", "reduced dry")
-    st.caption("FF is the primary takeoff thrust-set indication. RPM and nozzle position are secondary cross-checks; verify matched left/right indications.")
+        p3.metric("RPM cross-check", takeoff.rpm_reference, "SECONDARY")
+        cue_status = "CALIBRATED CUE" if takeoff.thrust_rating_condition_calibrated else "STD REF ONLY"
+        p4.metric("Rating cue", cue_status, "runway model remains reference")
+    st.caption("Set the displayed FF per engine first. RPM and nozzle position are secondary cross-checks; a single RPM does not establish the same thrust in every atmosphere. Verify matched left/right indications.")
 
     s1, s2, s3, s4 = st.columns(4)
     s1.metric("V1", "WITHHELD", "no engine-cut validation")
@@ -523,15 +540,16 @@ with takeoff_tab:
             st.caption("Runs without recorded gross weight, trim, OAT, and cockpit indications remain motion evidence only.")
     source_block(takeoff.provenance, takeoff.notes)
 
-with enroute_tab:
+with climb_tab:
     st.subheader(f"Climb planning allowance to FL{cruise.flight_level:03d}")
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Time allowance", f"{climb_profile.time_min:.0f} min", "rounded up")
-    c2.metric("Fuel allowance", f"{climb_profile.fuel_burn_lb:,.0f} lb", "two-engine total; rounded up")
-    c3.metric("MIL climb technique", "6.0 → 9.5 AOA", "sea level → combat ceiling")
-    c4.metric("Data status", "ALLOWANCE", "not predicted performance")
+    c2.metric("Distance allowance", f"{climb_profile.distance_nm:,.0f} NM", "rounded up")
+    c3.metric("Fuel allowance", f"{climb_profile.fuel_burn_lb:,.0f} lb", "aircraft total")
+    c4.metric("DCS test schedule", "250 / 300 / M0.72", "engineering, not NATOPS")
+    c5.metric("Data status", "ALLOWANCE", "not chart performance")
     st.caption(
-        "NATOPS Figure 14-1 supports the AOA technique. The app does not have a verified F-14B climb chart, so time, fuel, speed, FF, RPM, ROC, and gradient remain conservative engineering allowances."
+        "The public flight manual does not contain the F-14B climb-performance charts; it points to the separate performance supplement. NATOPS Figure 14-1 gives 6.0 to 9.5 units AOA for a MIL climb only as an alternate cue after an airspeed-indicator failure. Time, distance, fuel, speed, FF, RPM, ROC, and gradient remain conservative engineering allowances."
     )
     with st.expander("Estimated climb checkpoints"):
         climb_df = pd.DataFrame(
@@ -550,19 +568,21 @@ with enroute_tab:
         )
         st.dataframe(climb_df, width="stretch", hide_index=True)
 
+    source_block(climb_profile.provenance, climb_profile.notes)
+
+with cruise_tab:
     st.subheader("Legacy cruise trial")
     cr1, cr2, cr3, cr4 = st.columns(4)
     cr1.metric("Trial flight level", f"FL{cruise.flight_level:03d}", "legacy unverified table")
-    cr2.metric("Technique", "8.0 units AOA", "NATOPS optimum-altitude cruise")
+    cr2.metric("Alternate AOA cue", "8.0 units", "airspeed-indicator failure only")
     cr3.metric("Trial FF / engine", f"{cruise.fuel_flow_pph_per_engine:,.0f} PPH", "planning allowance")
     cr4.metric("RPM cross-check", f"~{cruise.rpm_pct:.0f}%", "uncalibrated model")
     st.caption(
-        f"Trial speed {cruise.optimum_ias_kt:.0f} KIAS / M{cruise.optimum_mach:.3f}, TAS {cruise.tas_kt:.0f} kt. The prior cruise-table citation pointed to a pocket checklist that cannot contain the claimed page; altitude, Mach, FF, and RPM remain unverified until a controlled DCS calibration is captured."
+        f"Trial speed {cruise.optimum_ias_kt:.0f} KIAS / M{cruise.optimum_mach:.2f}, TAS {cruise.tas_kt:.0f} kt. The prior cruise-table citation pointed to a pocket checklist that cannot contain the claimed page. Figure 14-1's 8-unit value is an alternate AOA cue, not validation of this altitude or speed. Altitude, Mach, FF, and RPM remain unverified until controlled DCS calibration is captured."
     )
-    source_block(climb_profile.provenance, climb_profile.notes)
     source_block(cruise.provenance, cruise.notes)
 
-with recovery_tab:
+with landing_tab:
     st.subheader("Landing fuel quick reference")
     st.caption(
         "Maximum fuel is calculated from entered takeoff gross weight and starting fuel. "
@@ -606,7 +626,7 @@ with recovery_tab:
     source_block(landing_fuel.provenance, landing_fuel.notes)
     source_block(landing.provenance)
 
-with maneuver_tab:
+with tools_tab:
     st.subheader("Level-turn geometry")
     st.caption(
         "This section now calculates ideal coordinated-turn geometry only. "
@@ -639,20 +659,26 @@ with maneuver_tab:
     q4.metric("180° / 360°", f"{energy.turn_180_sec:.1f} / {energy.turn_360_sec:.1f} sec")
     source_block(energy.provenance)
 
-kneeboard_rpm_crosscheck = (
-    "95-104%" if takeoff.rpm_pct >= 99.5 else f"~{takeoff.eig_reference_rpm_pct:.1f}%"
-)
+kneeboard_rpm_crosscheck = takeoff.rpm_reference.replace(" N2", "")
 kneeboard_sections = [
     (
-        "Takeoff",
+        "Aircraft",
         [
-            f"{runway.name} | {takeoff_weight:,.0f} LB | {headwind:+.0f} KT HW | {abs(crosswind):.0f} KT XW",
-            f"{takeoff.flaps} / {takeoff.thrust_setting} | TRIM TRIAL {takeoff.stabilizer_trim_anu:.1f} ANU | {takeoff_status}",
+            f"{aircraft_variant} | GW {takeoff_weight:,.0f} LB | FUEL {starting_fuel:,.0f} LB | LAND GW {landing_weight:,.0f} LB",
+            f"LOADOUT: {loadout.summary}",
         ],
     ),
     (
-        "Speeds",
+        "Departure",
         [
+            f"{runway.name} | {takeoff_weight:,.0f} LB | {headwind:+.0f} KT HW | {abs(crosswind):.0f} KT XW",
+            f"PA {takeoff.pressure_altitude_ft:,.0f} FT | OAT {environment.oat_c:.0f} C | QNH {environment.qnh_inhg:.2f} | {runway.condition}",
+        ],
+    ),
+    (
+        "Takeoff",
+        [
+            f"{takeoff.flaps} | {takeoff.thrust_setting} | TRIM TRIAL {takeoff.stabilizer_trim_anu:.1f} ANU | {takeoff_status}",
             f"V1 WITHHELD | VR REF {takeoff.vr_kt:.0f} | V2 REF {takeoff.v2_kt:.0f} | VFS EST {takeoff.vfs_kt:.0f} KIAS",
             f"OEI {takeoff.oei_climb_speed_kt:.0f} KIAS (V2+15) | GEAR UP | OPERATING ENGINE MIL",
         ],
@@ -661,14 +687,21 @@ kneeboard_sections = [
         "Power and runway",
         [
             f"SET {takeoff.fuel_flow_pph_per_engine:,.0f} PPH/ENG PRIMARY | RPM X-CHECK {kneeboard_rpm_crosscheck}",
-            f"LEGACY ASD {takeoff.factored_asd_ft:,.0f} | AEO {takeoff.factored_agd_ft:,.0f} | PLAN MARGIN {min(takeoff.asda_margin_ft, takeoff.toda_margin_ft):+,.0f} FT",
+            f"AEO DIST {takeoff.factored_agd_ft:,.0f} | RUNWAY {runway.toda_ft:,.0f} | MARGIN {takeoff.toda_margin_ft:+,.0f} FT",
         ],
     ),
     (
-        "Climb and cruise",
+        "Climb",
         [
-            f"MIL CLIMB 6.0->9.5 AOA | PLAN ALLOW {climb_profile.time_min:.0f} MIN / {climb_profile.fuel_burn_lb:,.0f} LB",
-            f"CRUISE TRIAL: FL{cruise.flight_level:03d} | 8.0 AOA | {cruise.fuel_flow_pph_per_engine:,.0f} PPH/ENG / ~{cruise.rpm_pct:.0f}%",
+            "DCS TEST SCHEDULE 250 KIAS TO 10K, THEN 300 KIAS TO M0.72",
+            f"FL{cruise.flight_level:03d} | {climb_profile.time_min:.0f} MIN | {climb_profile.distance_nm:.0f} NM | {climb_profile.fuel_burn_lb:,.0f} LB",
+        ],
+    ),
+    (
+        "Cruise trial",
+        [
+            f"FL{cruise.flight_level:03d} | {cruise.optimum_ias_kt:.0f} KIAS / M{cruise.optimum_mach:.2f} | ALT/SPD UNVERIFIED",
+            f"SET {cruise.fuel_flow_pph_per_engine:,.0f} PPH/ENG | RPM X-CHECK ~{cruise.rpm_pct:.0f}% | TOTAL {cruise.fuel_flow_pph_total:,.0f} PPH",
         ],
     ),
     (
@@ -702,13 +735,19 @@ if not observed_liftoff_runs.empty and 94.5 <= takeoff.rpm_pct <= 95.5:
     )
 kneeboard_png = render_kneeboard_png(
     mission_name or "vTF-77 Mission",
-    f"F-14B(U) | {loadout_preset} | {MODEL_REVISION}",
+    f"{aircraft_variant} | {loadout_preset} | {MODEL_REVISION}",
+    kneeboard_sections,
+    footer=f"DCS ONLY | {takeoff_status}",
+)
+kneeboard_pdf = render_mission_card_pdf(
+    mission_name or "vTF-77 Mission",
+    f"{aircraft_variant} | {loadout_preset} | {MODEL_REVISION}",
     kneeboard_sections,
     footer=f"DCS ONLY | {takeoff_status}",
 )
 
-with kneeboard_tab:
-    st.subheader("DCS kneeboard")
+with card_tab:
+    st.subheader("Mission card")
     kb1, kb2 = st.columns([1, 1])
     with kb1:
         st.image(kneeboard_png, caption="768 x 1024 mission card")
@@ -721,17 +760,24 @@ with kneeboard_tab:
             mime="image/png",
             type="primary",
         )
+        st.download_button(
+            "Download printable PDF",
+            data=kneeboard_pdf,
+            file_name=f"{safe_name}_mission_card.pdf",
+            mime="application/pdf",
+        )
         st.write("Place the PNG in your DCS kneeboard folder or add it to the mission package.")
-        st.caption("The download updates automatically when mission inputs change.")
+        st.caption("Both exports update automatically when mission inputs change. The PDF is a clean one-page print format.")
 
 with data_tab:
     st.subheader("Audit status")
     audit_df = pd.DataFrame(
         [
+            {"Area": "Thrust ratings", "Operational use": "Discrete DCS-observed FF knots + published MIL indication", "Current treatment": "DERATE 3 / 2 / 1 / MIL; FF primary; RPM secondary; environment-gated"},
             {"Area": "Takeoff", "Operational use": "Legacy grids + DCS observations", "Current treatment": "REFERENCE ONLY or HOLD; V1 withheld; no GO label"},
             {"Area": "Trim", "Operational use": "Controlled DCS trial schedule", "Current treatment": "5.5 UP / 7.0 MAN next candidates"},
-            {"Area": "Climb", "Operational use": "NATOPS AOA technique + guarded allowance", "Current treatment": "6.0 to 9.5 units AOA; modeled details collapsed"},
-            {"Area": "Cruise", "Operational use": "Unverified legacy trial", "Current treatment": "8 units AOA primary; altitude/Mach/FF/RPM require DCS calibration"},
+            {"Area": "Climb", "Operational use": "Guarded DCS test profile", "Current treatment": "Figure 14-1 AOA retained only as an airspeed-failure alternate cue"},
+            {"Area": "Cruise", "Operational use": "Unverified legacy trial", "Current treatment": "Altitude/Mach/FF/RPM require DCS calibration; no validated mode claims"},
             {"Area": "Landing", "Operational use": "Legacy ground roll + NATOPS Figure 11-8", "Current treatment": "DLC-neutral and DLC-stowed IAS shown with +/-4 kt"},
             {"Area": "Maneuver", "Operational use": "Kinematic geometry only", "Current treatment": "No Ps or sustained-capability claim"},
         ]
@@ -746,6 +792,7 @@ with data_tab:
             {"Reference": "Henderson DCS runway start", "Known value": "~4,800 ft available (+/-100)", "Use": "Tacview geospatial reconciliation"},
             {"Reference": "Henderson MAN sequence", "Known value": "143 KIAS stick cue; 161 KIAS pitch response; 4,853 ft liftoff", "Use": "User report + attached Tacview"},
             {"Reference": "MIL engine indications", "Known value": "~10,100 PPH/eng; 95-104% N2; 3-10% nozzle", "Use": "NATOPS 2.11"},
+            {"Reference": "Reduced dry EIG knots", "Known value": "3,400/4,800/7,000 PPH at ~85/90/95% near SL/ISA", "Use": "User-confirmed DCS static sweep; indication only"},
             {"Reference": "54,000 lb on-speed", "Known value": "DLC neutral ~140 KIAS; DLC stowed ~131 KIAS; +/-4 kt", "Use": "NATOPS Figure 11-8"},
             {"Reference": "Landing gross weight", "Known value": "Field 60,000; modified carrier/FCLP 54,000; unmodified 51,800 lb", "Use": "NATOPS limit"},
             {"Reference": "Normal takeoff technique", "Known value": "MIL selected on roll; smooth rotation at precomputed Vr", "Use": "NATOPS procedure"},
@@ -759,6 +806,10 @@ with data_tab:
     )
     with st.expander("DCS engine observations"):
         st.dataframe(dcs_engine_observations, width="stretch", hide_index=True)
+    with st.expander("Discrete takeoff rating database"):
+        st.dataframe(takeoff_engine().takeoff_ratings, width="stretch", hide_index=True)
+    with st.expander("Maintained validation scenarios"):
+        st.dataframe(validation_scenarios, width="stretch", hide_index=True)
     with st.expander("DCS takeoff observations"):
         st.dataframe(dcs_takeoff_observations, width="stretch", hide_index=True)
     with st.expander("Attached Tacview takeoff motion"):

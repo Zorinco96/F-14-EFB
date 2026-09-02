@@ -18,7 +18,6 @@ from .weather import wind_components
 
 CONFIG_TABLE_CODE = {"UP": 0, "MANEUVER": 20, "FULL": 40}
 AUTO_ORDER = ("UP", "MANEUVER", "FULL")
-RPM_FLOOR = {"UP": 85, "MANEUVER": 90, "FULL": 96}
 MANEUVER_ANCHOR = {
     "weight_lb": 65000.0,
     "vs_kt": 122.0,
@@ -224,20 +223,54 @@ class TakeoffModel:
         )
         return gradient, oei, prov
 
-    def calculate(self, inputs: TakeoffInputs, flaps: str, rpm_pct: float) -> TakeoffResult:
+    def _resolve_takeoff_rating(
+        self,
+        inputs: TakeoffInputs,
+        rating: str | float | None,
+        pressure_altitude_ft_value: float,
+    ):
+        requested = rating
+        if requested is None:
+            requested = inputs.thrust_rating
+        if requested is None and inputs.rpm_pct is not None:
+            requested = float(inputs.rpm_pct)
+        if requested is None and inputs.thrust.upper() not in {"AUTO", "MANUAL"}:
+            requested = inputs.thrust
+        if requested is None:
+            requested = "MIL"
+        if isinstance(requested, (int, float)):
+            requested = self.engine.rating_for_rpm(float(requested))
+        return self.engine.takeoff_rating(
+            str(requested),
+            pressure_altitude_ft=pressure_altitude_ft_value,
+            oat_c=inputs.environment.oat_c,
+        )
+
+    def calculate(
+        self,
+        inputs: TakeoffInputs,
+        flaps: str,
+        rating: str | float | None = None,
+    ) -> TakeoffResult:
         flaps = flaps.upper()
         if flaps not in AUTO_ORDER:
             raise ValueError(f"Unsupported takeoff flap configuration: {flaps}")
         if not 40000 <= inputs.weight_lb <= 76000:
             raise ValueError("F-14B takeoff weight must be between 40,000 and 76,000 lb for this model.")
-        if not 70 <= rpm_pct <= 100:
-            raise ValueError("Takeoff RPM must be between 70 and 100 percent.")
         loadout_label = inputs.takeoff_loadout.strip() or "Clean"
 
         field_elev = inputs.runway.elevation_ft
         if field_elev is None:
             field_elev = inputs.environment.field_elevation_ft
         pa = pressure_altitude_ft(field_elev, inputs.environment.qnh_inhg)
+        rating_reference = self._resolve_takeoff_rating(inputs, rating, pa)
+        if flaps not in rating_reference.allowed_flaps:
+            allowed = ", ".join(rating_reference.allowed_flaps)
+            raise ValueError(
+                f"{rating_reference.display_name} is not an approved discrete choice for {flaps}; "
+                f"allowed flap configurations: {allowed}."
+            )
+        rpm_pct = rating_reference.nominal_rpm_pct
         base, table_prov = self._mil_table(flaps, inputs.weight_lb, pa, inputs.environment.oat_c)
         corrected, thrust_prov = self._reduced_thrust(base, rpm_pct, pa, inputs.environment.oat_c, base["vr_kt"])
         vfs_kt, oei_climb_speed_kt, takeoff_reference_prov = self._takeoff_references(
@@ -276,14 +309,7 @@ class TakeoffModel:
         climb, climb_oei, climb_prov = self._calibrated_climb(
             flaps, rpm_pct, inputs.weight_lb, pa, inputs.environment.oat_c, corrected["v2_kt"]
         )
-        eig_reference = self.engine.takeoff_eig_reference(
-            rpm_pct,
-            pressure_altitude_ft=pa,
-            oat_c=inputs.environment.oat_c,
-        )
-        thrust_setting = (
-            "MIL" if rpm_pct >= 99.5 else "REDUCED DRY TEST"
-        )
+        thrust_setting = rating_reference.display_name
 
         factored_asd = asd * inputs.runway_factor
         factored_agd = agd * inputs.runway_factor
@@ -300,10 +326,15 @@ class TakeoffModel:
             and rpm_pct < 99.5
         )
         outside_legacy_grid = table_prov.method == Method.EXTRAPOLATED
+        rating_condition_unobserved = (
+            rating_reference.rating_id != "MIL"
+            and not rating_reference.condition_calibrated
+        )
         takeoff_data_valid = not (
             external_store_drag_unmodeled
             or hot_high_reduced_thrust
             or outside_legacy_grid
+            or rating_condition_unobserved
         )
 
         if external_store_drag_unmodeled:
@@ -323,8 +354,13 @@ class TakeoffModel:
                 "The result is extrapolated and placed on planning hold."
             )
 
-        if rpm_pct < RPM_FLOOR[flaps]:
-            warnings.append(f"{flaps} selected below AUTO policy floor of {RPM_FLOOR[flaps]}% RPM.")
+        if rating_condition_unobserved:
+            warnings.append(
+                f"{rating_reference.display_name} has no FF-to-RPM observation near PA {pa:.0f} ft / "
+                f"{inputs.environment.oat_c:.0f} C. The displayed standard-condition cue is not "
+                "condition-calibrated; use MIL or record a controlled static sweep."
+            )
+
         if asda_margin < 0:
             warnings.append(f"Factored accelerate-stop distance exceeds ASDA by {abs(asda_margin):.0f} ft.")
         if toda_margin < 0:
@@ -343,7 +379,7 @@ class TakeoffModel:
             thrust_prov,
             v1_prov,
             climb_prov,
-            eig_reference.provenance,
+            rating_reference.provenance,
             takeoff_reference_prov,
             source="Takeoff solution",
         )
@@ -369,9 +405,13 @@ class TakeoffModel:
             headwind_kt=round(raw_headwind, 1),
             credited_headwind_kt=round(credited_headwind, 1),
             thrust_setting=thrust_setting,
-            eig_reference_rpm_pct=round(eig_reference.rpm_pct, 1),
-            fuel_flow_pph_per_engine=round(eig_reference.fuel_flow_pph_per_engine),
-            fuel_flow_pph_total=round(eig_reference.fuel_flow_pph_per_engine * 2.0),
+            thrust_rating_id=rating_reference.rating_id,
+            thrust_rating_order=rating_reference.selection_order,
+            thrust_rating_condition_calibrated=rating_reference.condition_calibrated,
+            rpm_reference=rating_reference.rpm_reference,
+            eig_reference_rpm_pct=round(rating_reference.nominal_rpm_pct, 1),
+            fuel_flow_pph_per_engine=round(rating_reference.fuel_flow_pph_per_engine),
+            fuel_flow_pph_total=round(rating_reference.fuel_flow_pph_per_engine * 2.0),
             stabilizer_trim_anu=takeoff_trim_anu,
             stabilizer_trim_band_anu=TAKEOFF_TRIM_TEST_BANDS_ANU[flaps],
             oei_climb_speed_kt=round(oei_climb_speed_kt),
@@ -399,8 +439,9 @@ class TakeoffModel:
                 f"Runway planning factor: {inputs.runway_factor:.2f}.",
                 f"Wind policy: {inputs.headwind_credit_pct:.0f}% headwind credit / "
                 f"{inputs.tailwind_penalty_pct:.0f}% tailwind penalty.",
-                f"Fuel flow is the primary takeoff thrust-set indication and is shown per engine. RPM is a cross-check. Source: {eig_reference.provenance.source}.",
-                "AUTO never selects afterburner for takeoff.",
+                f"Fuel flow is the primary takeoff thrust-set indication and is shown per engine. RPM is a secondary cross-check. Source: {rating_reference.provenance.source}.",
+                "Takeoff power is limited to the discrete DERATE 3, DERATE 2, DERATE 1, and MIL ratings. AUTO never selects afterburner.",
+                "A condition-calibrated cockpit indication does not by itself validate delivered thrust or runway performance.",
                 "OEI climb is advisory; the locked AUTO gate is AEO climb gradient.",
                 "Pitch trim does not command airspeed; the pilot must control pitch to maintain the OEI V2+15 target.",
                 "Trim is a DCS trial schedule. The latest 62,000 lb two-tank/two-AIM-9 tests found 5.0 ANU UP slightly heavy and 6.5 ANU MANEUVER heavy; the next candidates are 5.5 and 7.0 ANU.",
@@ -426,21 +467,37 @@ class AutoTakeoffSelector:
         if requested != "AUTO" and requested not in AUTO_ORDER:
             raise ValueError("Flaps must be AUTO, UP, MANEUVER, or FULL.")
 
-        if inputs.thrust.upper() == "MANUAL" or inputs.rpm_pct is not None:
+        manual_rating = inputs.thrust_rating
+        if manual_rating is None and inputs.rpm_pct is not None:
+            manual_rating = self.model.engine.rating_for_rpm(inputs.rpm_pct)
+        if manual_rating is None and inputs.thrust.upper() not in {"AUTO", "MANUAL"}:
+            manual_rating = inputs.thrust
+        if manual_rating is not None or inputs.thrust.upper() == "MANUAL":
             flaps = "UP" if requested == "AUTO" else requested
-            rpm = 100.0 if inputs.rpm_pct is None else float(inputs.rpm_pct)
-            return self.model.calculate(inputs, flaps, rpm)
+            result = self.model.calculate(inputs, flaps, manual_rating or "MIL")
+            result.auto_selected = False
+            return result
 
         configurations = AUTO_ORDER if requested == "AUTO" else (requested,)
         all_results: list[TakeoffResult] = []
         for flaps in configurations:
-            for rpm in range(RPM_FLOOR[flaps], 101):
-                result = self.model.calculate(inputs, flaps, float(rpm))
+            for rating_id in self.model.engine.rating_ids(flaps):
+                result = self.model.calculate(inputs, flaps, rating_id)
                 all_results.append(result)
-                if result.feasible:
-                    result.notes.insert(0, "AUTO selected the first feasible configuration by flap priority and minimum RPM.")
+                if result.feasible and result.takeoff_data_valid:
+                    result.auto_selected = True
+                    result.notes.insert(
+                        0,
+                        "AUTO selected the first feasible, condition-calibrated discrete rating by locked flap priority and increasing thrust.",
+                    )
                     return result
 
-        best = min(all_results, key=lambda r: self._penalty(r, inputs.climb_target_ft_nm))
-        best.warnings.insert(0, "No AUTO configuration satisfies both runway and AEO climb planning criteria.")
+        mil_results = [result for result in all_results if result.thrust_rating_id == "MIL"]
+        candidates = mil_results or all_results
+        best = min(candidates, key=lambda r: self._penalty(r, inputs.climb_target_ft_nm))
+        best.auto_selected = True
+        best.warnings.insert(
+            0,
+            "No condition-calibrated AUTO candidate satisfies both runway and AEO climb planning criteria. MIL is retained as the fail-safe dry setting.",
+        )
         return best

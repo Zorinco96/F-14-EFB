@@ -24,15 +24,16 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - pressure altitude
 - wind component calculation
 - explicit UP / MANEUVER / FULL flap selection
-- MIL default; reduced dry thrust is isolated as a DCS test mode
+- discrete dry ratings only: DERATE 3, DERATE 2, DERATE 1, and MIL
+- AUTO selects the lowest condition-calibrated standardized rating that clears runway and AEO climb gates; MIL is the fail-safe dry setting
 - fuel flow is the primary takeoff thrust-set indication
 - MIL reference of approximately 10,100 PPH per engine, with 95-104% N2 and 3-10% nozzle as cross-checks
-- FF-first reduced-dry input with observation-derived RPM cross-check
+- FF-first discrete reduced ratings tied to the user-confirmed DCS EIG knots; no continuous takeoff FF or RPM slider
 - default 0% headwind credit / 150% tailwind penalty, with a 50% / 150% option
 - V1 withheld from the operational interface until controlled engine-cut validation exists
 - legacy Vr and V2 references plus estimated Vfs and Vs, all visibly guarded
 - integer V-speed presentation
-- separate FF target and RPM cross-check, using NATOPS MIL indications plus Batumi static and local Henderson +40 C observations
+- environment-bounded FF/RPM references using NATOPS MIL indications plus Batumi static and local Henderson +40 C observations; unobserved reduced-power atmospheres are held instead of silently corrected
 - next-trial takeoff pitch-trim candidates established before the roll: 5.5 ANU UP and 7.0 ANU MANEUVER, targeting an easy rotation without excessive backpressure
 - separate OEI climb target of V2+15, gear up, with MILITARY thrust on the operating engine
 - explicit note that trim does not command or guarantee climb airspeed
@@ -42,7 +43,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - AEO initial climb gate, default 300 ft/NM
 - OEI climb advisory
 - direct DCS gross-weight input
-- DCS-style station loadout or loadout preset; internal drag units are derived automatically
+- DCS-style station loadout plus Heatblur SCL-based BFM, CAP, strike, TARPS, and fleet-defense presets; internal drag units are derived automatically
 - validation hold for external-store, hot/high reduced-thrust, and out-of-grid takeoff conditions
 - DCS runway-start available distance when known; Henderson 35L defaults to the Tacview-reconciled 4,800 ft instead of the full 6,501 ft
 - in-app DCS engine, user-observation, and attached-Tacview motion tables
@@ -50,9 +51,9 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 
 ### Climb
 
-- NATOPS MIL-climb technique of 6 units AOA at sea level increasing to 9.5 at combat ceiling
+- NAVAIR Figure 14-1's 6-to-9.5-unit MIL-climb AOA values are retained only as alternate cues for an airspeed-indicator failure, matching the actual figure context
 - conservative MIL and 95% dry time/fuel integration allowances to the selected cruise trial flight level
-- guarded rate-of-climb and time allowances that are not presented as maximum aircraft capability; time and fuel are rounded upward
+- guarded rate, time, distance, and fuel allowances that are not presented as NATOPS chart performance; time, distance, and fuel are rounded upward
 - conservative two-engine climb fuel burn
 - fuel flow displayed in PPH per engine
 - weight, stores, and ISA-deviation planning allowances
@@ -61,7 +62,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 ### Cruise
 
 - legacy cruise trial altitude and Mach, explicitly marked unverified
-- NATOPS optimum-altitude cruise technique of 8 units AOA
+- NAVAIR Figure 14-1's 8-unit optimum-altitude AOA is retained only as an alternate cue for an airspeed-indicator failure, not validation of the cruise trial
 - altitude rounded to the nearest usable 1,000 ft flight level
 - KIAS and Mach at the rounded flight level
 - estimated FF planning allowance rounded upward to 250 PPH per engine and RPM cross-check rounded upward to 5%
@@ -101,6 +102,14 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - JOKER / BINGO tracking
 - consolidated mission notes instead of repeated warning banners
 - downloadable 768 x 1024 DCS kneeboard PNG
+- downloadable one-page printable mission-card PDF
+
+### Validation
+
+- maintained light, heavy, cold, hot, high, short-runway, tailwind, fleet-defense, strike, external-tank, reduced-rating, MIL, and Henderson Tacview scenarios
+- phase outputs captured for thrust rating, FF, RPM reference, Vr/V2, trim, takeoff distance, climb, cruise, and landing
+- CI-safe status expectations that distinguish `REFERENCE ONLY`, `PLANNING HOLD`, and `LIMIT EXCEEDED`
+- command-line report: `python tools/run_validation_matrix.py`
 
 ## Source hierarchy
 
@@ -112,7 +121,7 @@ The repository contains legacy datasets labeled as NATOPS-derived. Version 3 pre
 - CALIBRATED
 - ESTIMATED
 
-See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, `docs/EFB_UX_BENCHMARK_2026-08-16.md`, and `docs/VALIDATION_MATRIX_2026-08-16.md`.
+See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, `docs/EFB_UX_BENCHMARK_2026-09-01.md`, and `docs/VALIDATION_MATRIX_2026-09-01.md`.
 
 ## Run
 
@@ -125,6 +134,7 @@ streamlit run app.py
 
 ```bash
 pytest
+python tools/run_validation_matrix.py
 ```
 
 ## High-value legacy data retained
@@ -134,6 +144,8 @@ pytest
 - `data/f14_cruise_natops.csv`
 - `data/F110_engine.csv`
 - `data/f110_ff_to_rpm_knots.csv`
+- `data/f110_takeoff_ratings.csv`
+- `data/validation_scenarios.csv`
 - `data/dcs_airports.csv`
 
 The old `data/f14_aero.csv` is retained for historical traceability but is intentionally not authoritative in v3 because it contains malformed values.

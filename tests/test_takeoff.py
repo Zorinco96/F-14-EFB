@@ -1,3 +1,5 @@
+import pytest
+
 from src.f14perf.takeoff import AutoTakeoffSelector, TakeoffModel
 from src.f14perf.types import Environment, Runway, TakeoffInputs
 
@@ -35,19 +37,30 @@ def test_maneuver_calibration_anchor(data_dir):
     assert prov.method.value == "CALIBRATED"
 
 
-def test_auto_uses_no_afterburner_and_respects_floor(data_dir):
+def test_auto_uses_only_discrete_dry_ratings(data_dir):
     result = AutoTakeoffSelector(data_dir).select(baseline())
     assert result.flaps in {"UP", "MANEUVER", "FULL"}
-    floors = {"UP": 85, "MANEUVER": 90, "FULL": 96}
-    assert result.rpm_pct >= floors[result.flaps]
-    assert result.rpm_pct <= 100
+    assert result.thrust_rating_id in {"DERATE_3", "DERATE_2", "DERATE_1", "MIL"}
+    assert result.rpm_pct in {85, 90, 95, 100}
+    assert result.auto_selected
 
 
-def test_full_auto_floor_is_96_percent(data_dir):
+def test_auto_selects_lowest_discrete_rating_that_clears_all_gates(data_dir):
+    selector = AutoTakeoffSelector(data_dir)
+    result = selector.select(baseline())
+    lower = selector.model.calculate(baseline(), "UP", "DERATE 3")
+    assert result.thrust_rating_id == "DERATE_2"
+    assert result.feasible
+    assert not lower.feasible
+    assert lower.climb_gradient_ft_nm < baseline().climb_target_ft_nm
+
+
+def test_full_auto_uses_mil_because_no_observed_high_derate_knot_exists(data_dir):
     result = AutoTakeoffSelector(data_dir).select(baseline(flaps="FULL"))
     assert result.feasible
     assert result.flaps == "FULL"
-    assert result.rpm_pct == 96
+    assert result.thrust_rating_id == "MIL"
+    assert result.rpm_pct == 100
 
 
 def test_balanced_v1_below_vr(data_dir):
@@ -90,7 +103,8 @@ def test_resolved_engine_guidance_and_pre_roll_trim_setting(data_dir):
     result = AutoTakeoffSelector(data_dir).select(
         baseline(thrust="MANUAL", rpm_pct=90)
     )
-    assert result.thrust_setting == "REDUCED DRY TEST"
+    assert result.thrust_setting == "DERATE 2"
+    assert result.thrust_rating_id == "DERATE_2"
     assert result.eig_reference_rpm_pct == 90
     assert result.fuel_flow_pph_per_engine == 4800
     assert result.fuel_flow_pph_total == 9600
@@ -110,6 +124,25 @@ def test_military_command_uses_natops_on_deck_eig_reference(data_dir):
     assert result.fuel_flow_pph_per_engine == 10100
 
 
+def test_continuous_takeoff_rpm_is_rejected(data_dir):
+    with pytest.raises(ValueError, match="Continuously variable takeoff RPM is disabled"):
+        TakeoffModel(data_dir).calculate(baseline(), "UP", 92)
+
+
+def test_discrete_rating_ff_breakpoints_are_data_backed(data_dir):
+    model = TakeoffModel(data_dir)
+    expected = {
+        "DERATE 3": (85, 3400),
+        "DERATE 2": (90, 4800),
+        "DERATE 1": (95, 7000),
+        "MIL": (100, 10100),
+    }
+    for rating, (rpm, ff) in expected.items():
+        result = model.calculate(baseline(), "UP", rating)
+        assert result.rpm_pct == rpm
+        assert result.fuel_flow_pph_per_engine == ff
+
+
 def test_ff_first_inverse_uses_henderson_anchor(data_dir):
     model = TakeoffModel(data_dir)
     point = model.engine.rpm_for_takeoff_ff(5_250, 2_492, 40)
@@ -122,6 +155,26 @@ def test_ff_first_inverse_uses_sea_level_anchor(data_dir):
     point = model.engine.rpm_for_takeoff_ff(7_000, 0, 15)
     assert point.rpm_pct == 95
     assert point.fuel_flow_pph_per_engine == 7_000
+
+
+def test_same_observed_rpm_has_materially_different_ff_between_environments(data_dir):
+    model = TakeoffModel(data_dir)
+    standard = model.engine.takeoff_rating("DERATE 1", 0, 15)
+    henderson = model.engine.takeoff_rating("DERATE 1", 2_492, 40)
+    assert standard.nominal_rpm_pct == henderson.nominal_rpm_pct == 95
+    assert standard.fuel_flow_pph_per_engine == 7_000
+    assert henderson.fuel_flow_pph_per_engine == 5_250
+    assert henderson.fuel_flow_pph_per_engine / standard.fuel_flow_pph_per_engine == 0.75
+
+
+def test_auto_uses_mil_when_reduced_rating_indications_are_unobserved(data_dir):
+    environment = Environment(field_elevation_ft=4_000, oat_c=15, qnh_inhg=29.92)
+    runway = Runway(tora_ft=12_000, toda_ft=12_000, asda_ft=12_000, elevation_ft=4_000)
+    result = AutoTakeoffSelector(data_dir).select(
+        baseline(environment=environment, runway=runway)
+    )
+    assert result.thrust_rating_id == "MIL"
+    assert result.auto_selected
 
 
 def test_pre_roll_trim_and_oei_speed_across_model_range(data_dir):
@@ -163,7 +216,7 @@ def test_hot_high_reduced_thrust_is_marked_unvalidated(data_dir):
     result = TakeoffModel(data_dir).calculate(
         baseline(environment=environment, runway=runway),
         "UP",
-        98,
+        "DERATE 1",
     )
     assert not result.takeoff_data_valid
     assert any("Hot/high reduced-thrust" in w for w in result.warnings)
@@ -182,15 +235,11 @@ def test_hot_high_ff_guidance_uses_henderson_observations(data_dir):
     at_95 = model.calculate(
         baseline(environment=environment, runway=runway),
         "MANEUVER",
-        95,
+        "DERATE 1",
     )
-    at_98 = model.calculate(
-        baseline(environment=environment, runway=runway),
-        "UP",
-        98,
-    )
-    sea_level = model.calculate(baseline(), "UP", 95)
+    observed_98 = model.engine.takeoff_eig_reference(98, 2492, 40)
+    sea_level = model.calculate(baseline(), "UP", "DERATE 1")
     assert at_95.fuel_flow_pph_per_engine == 5250
-    assert at_98.fuel_flow_pph_per_engine == 6000
+    assert observed_98.fuel_flow_pph_per_engine == 6000
     assert sea_level.fuel_flow_pph_per_engine == 7000
-    assert "loaded-aircraft observations near PA 2492 ft / 40 C" in at_95.provenance.detail
+    assert "local indication only near PA 2492 ft / 40 C" in at_95.provenance.detail

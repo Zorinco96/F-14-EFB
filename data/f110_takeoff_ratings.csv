@@ -1,0 +1,5 @@
+rating_id,display_name,nominal_rpm_pct,standard_ff_pph_per_engine,selection_order,allowed_flaps,evidence_class,source_note
+DERATE_3,DERATE 3,85,3400,1,UP,DCS_OBSERVED,"Batumi near-sea-level ISA static EIG observation; engine setting only"
+DERATE_2,DERATE 2,90,4800,2,UP|MANEUVER,DCS_OBSERVED,"Batumi near-sea-level ISA static EIG observation; engine setting only"
+DERATE_1,DERATE 1,95,7000,3,UP|MANEUVER,DCS_OBSERVED,"Batumi near-sea-level ISA static EIG observation plus limited Henderson 95-percent takeoff evidence"
+MIL,MIL,100,10100,4,UP|MANEUVER|FULL,NATOPS_PUBLISHED,"NAVAIR 01-F14AAP-1 sections 2.11.2-2.11.7 on-deck normal indication"

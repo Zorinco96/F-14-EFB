@@ -4,7 +4,7 @@ from src.f14perf.climb import ClimbModel
 from src.f14perf.cruise import CruiseModel
 from src.f14perf.energy import EnergyModel
 from src.f14perf.fuel import FuelModel
-from src.f14perf.kneeboard import render_kneeboard_png
+from src.f14perf.kneeboard import render_kneeboard_png, render_mission_card_pdf
 from src.f14perf.landing import LandingModel
 from src.f14perf.mission import MissionPlanner
 from src.f14perf.types import Environment, Runway, TakeoffInputs
@@ -28,6 +28,8 @@ def test_named_climb_profiles_are_distinct(data_dir):
     assert efficient.time_min > minimum_time.time_min > 0
     assert efficient.fuel_burn_lb > 0
     assert minimum_time.fuel_burn_lb > 0
+    assert efficient.distance_nm > 0
+    assert minimum_time.distance_nm > 0
     assert any(point.rpm_pct < 100 for point in efficient.points)
     assert all(point.rpm_pct == 100 for point in minimum_time.points)
     assert max(point.ias_kt for point in efficient.points + minimum_time.points) <= 250
@@ -44,7 +46,7 @@ def test_cruise_table_point(data_dir):
     c = CruiseModel(data_dir).optimum(65000, 0)
     assert c.optimum_altitude_ft == 34000
     assert c.flight_level == 340
-    assert c.optimum_mach == 0.718
+    assert c.optimum_mach == 0.72
     assert c.optimum_ias_kt > 0
     assert c.rpm_pct > 0
     assert c.rpm_pct % 5 == 0
@@ -104,6 +106,7 @@ def test_mission_card_retains_selected_climb_strategy(data_dir):
     assert card.metadata["climb_profile_label"] == "MIL climb planning"
     assert card.metadata["climb_time_to_cruise_min"] > 0
     assert card.metadata["climb_fuel_to_cruise_lb"] > 0
+    assert card.metadata["climb_distance_to_cruise_nm"] > 0
     assert all(point.rpm_pct == 100 for point in card.climb)
     assert card.climb[-1].altitude_ft == card.cruise.optimum_altitude_ft
 
@@ -127,4 +130,14 @@ def test_kneeboard_renderer_returns_dcs_sized_png():
         [("Takeoff", ["V1 140 | VR 150 | V2 160", "TRIM 6.0 ANU"])],
     )
     assert payload.startswith(b"\x89PNG\r\n\x1a\n")
+    assert len(payload) > 1000
+
+
+def test_mission_card_renderer_returns_one_page_pdf():
+    payload = render_mission_card_pdf(
+        "vTF-77 Test",
+        "F-14B(U)",
+        [("Takeoff", ["V1 WITHHELD | VR 150 | V2 160", "SET 7,000 PPH/ENG"])],
+    )
+    assert payload.startswith(b"%PDF-")
     assert len(payload) > 1000

@@ -58,18 +58,15 @@ Record:
 
 This mirrors the structure of the existing UP/FULL table.
 
-## Priority 3: reduced RPM
+## Priority 3: discrete dry ratings and atmospheric FF/RPM mapping
 
 At 65,000 lb, SL/15 C:
 
-UP:
-- 85 through 100% in 2% increments
+Test the standardized rating points rather than searching continuous RPM:
 
-MANEUVER:
-- 90 through 100% in 2% increments
-
-FULL:
-- 98 and 100%
+- UP: DERATE 3, DERATE 2, DERATE 1, MIL
+- MANEUVER: DERATE 2, DERATE 1, MIL
+- FULL: MIL until a repeatable high reduced-power knot is established
 
 Record:
 
@@ -79,7 +76,7 @@ Record:
 - distance
 - initial climb gradient
 
-This will replace the current nonlinear reduced-thrust assumption.
+Repeat the static FF/RPM portion at representative cold, ISA, hot, sea-level, and high-field conditions before the roll. Record FF and RPM as observations, not inferred thrust. Repeat takeoff-distance points for each rating at least three times. These runs will bound any later atmospheric FF correction and replace the current nonlinear runway-scaling assumption only when the acceleration evidence supports it.
 
 ## Priority 4: pre-roll stabilator trim and OEI V2+15
 

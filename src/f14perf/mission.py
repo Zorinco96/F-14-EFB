@@ -64,5 +64,6 @@ class MissionPlanner:
                 "climb_profile_label": climb_profile.label,
                 "climb_time_to_cruise_min": climb_profile.time_min,
                 "climb_fuel_to_cruise_lb": climb_profile.fuel_burn_lb,
+                "climb_distance_to_cruise_nm": climb_profile.distance_nm,
             },
         )

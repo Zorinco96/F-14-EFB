@@ -17,7 +17,7 @@ Relevant sections include:
 - F-14B(U) Weapons / Loadout overview
 - Official tutorial index, including the front-seat startup, taxi, and takeoff video
 
-The Heatblur fuel-system documentation gives roughly 20,000 lb usable fuel. The F-14B(U) loadout documentation identifies 54,000 lb as the maximum carrier landing weight used for trap-fuel planning.
+The Heatblur fuel-system documentation gives roughly 20,000 lb usable fuel. The F-14B(U) loadout documentation identifies 54,000 lb as the maximum carrier landing weight used for trap-fuel planning. Its weapons overview supplies the AAW, AG, and TARPS Standard Conventional Loadout count patterns used by the preset menu.
 
 The official Heatblur tutorial video was used as a procedural presentation cross-check, not as a numerical calibration source. Its published context does not provide a controlled weight/weather/loadout matrix or machine-readable cockpit FF/RPM series, so no performance database values were fitted to video timing or visual runway position.
 
@@ -49,6 +49,8 @@ The following files predate v3 and are retained as project source data:
 - `data/F110_engine.csv`
 - `data/f110_ff_to_rpm_knots.csv`
 - `data/f110_takeoff_ff_environment.csv`
+- `data/f110_takeoff_ratings.csv`
+- `data/validation_scenarios.csv`
 - `data/dcs_engine_observations.csv`
 - `data/dcs_takeoff_test_log.csv`
 - `data/tacview_takeoff_motion.csv`
@@ -59,6 +61,10 @@ Their original provenance is preserved in file labels/notes where available. V3 
 
 `f110_ff_to_rpm_knots.csv` contains the user-confirmed Batumi static fuel-flow/RPM observations. `f110_takeoff_ff_environment.csv` contains the narrow Henderson +40 C aggregate used from 95 through 98% RPM. The two raw observation registers retain individual engine and takeoff runs. These values are labeled as DCS-calibrated observations rather than as released F110 or F-14 performance charts.
 
+`f110_takeoff_ratings.csv` defines the four standardized takeoff choices. The three reduced rows must match exact Batumi observation knots; MIL retains the NAVAIR normal indication. `validation_scenarios.csv` is a maintained test-case registry, not a source of performance truth.
+
 The attached Tacview files were parsed with `tools/analyze_tacview.py`. They provide motion and configuration telemetry but no per-engine fuel-flow or engine-RPM fields. `dcs_runway_starts.csv` records the approximately 4,800 ft available from the Henderson 35L DCS runway-start spawn, with about +/-100 ft uncertainty.
 
 The prior cruise-table citation to NAVAIR 01-F14AAP-1B page 241 was removed because that pocket checklist does not contain the claimed page. Cruise altitude, Mach, FF, and RPM remain unverified trial outputs.
+
+NAVAIR 01-F14AAP-1 Figure 14-1 appears in the airspeed-indicator-failure procedure. Its climb and cruise AOA values are alternate cues for that failure context. They do not validate the normal climb schedule, time/distance/fuel, optimum cruise level, cruise Mach, FF, or RPM.

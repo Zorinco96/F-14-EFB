@@ -60,6 +60,32 @@ def data_dir(tmp_path: Path) -> Path:
             "validation_scope": "test scope",
         },
     ]).to_csv(tmp_path / "f110_takeoff_ff_environment.csv", index=False)
+    pd.DataFrame([
+        {
+            "rating_id": "DERATE_3", "display_name": "DERATE 3",
+            "nominal_rpm_pct": 85, "standard_ff_pph_per_engine": 3400,
+            "selection_order": 1, "allowed_flaps": "UP",
+            "evidence_class": "DCS_OBSERVED", "source_note": "fixture",
+        },
+        {
+            "rating_id": "DERATE_2", "display_name": "DERATE 2",
+            "nominal_rpm_pct": 90, "standard_ff_pph_per_engine": 4800,
+            "selection_order": 2, "allowed_flaps": "UP|MANEUVER",
+            "evidence_class": "DCS_OBSERVED", "source_note": "fixture",
+        },
+        {
+            "rating_id": "DERATE_1", "display_name": "DERATE 1",
+            "nominal_rpm_pct": 95, "standard_ff_pph_per_engine": 7000,
+            "selection_order": 3, "allowed_flaps": "UP|MANEUVER",
+            "evidence_class": "DCS_OBSERVED", "source_note": "fixture",
+        },
+        {
+            "rating_id": "MIL", "display_name": "MIL",
+            "nominal_rpm_pct": 100, "standard_ff_pph_per_engine": 10100,
+            "selection_order": 4, "allowed_flaps": "UP|MANEUVER|FULL",
+            "evidence_class": "NATOPS_PUBLISHED", "source_note": "fixture",
+        },
+    ]).to_csv(tmp_path / "f110_takeoff_ratings.csv", index=False)
 
     landing_rows = [{
         "flap_setting": "DOWN", "gross_weight_lbs": 54000,

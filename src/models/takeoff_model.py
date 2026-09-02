@@ -20,6 +20,7 @@ class TakeoffModel:
         thrust_selection=None,
         weather=None,
         rpm_pct=None,
+        thrust_rating=None,
         **_,
     ):
         weight_lb = float(weight_lbs if weight_lbs is not None else weight)
@@ -44,14 +45,16 @@ class TakeoffModel:
         flaps = (flap_config or flap_setting or "AUTO").upper()
         thrust = (thrust_selection or thrust_mode or "AUTO").upper()
         explicit_rpm = rpm_pct
-        if explicit_rpm is None and thrust in {"MIL", "MILITARY"}:
-            explicit_rpm = 100.0
+        explicit_rating = thrust_rating
+        if explicit_rating is None and thrust in {"MIL", "MILITARY"}:
+            explicit_rating = "MIL"
         inputs = TakeoffInputs(
             weight_lb=weight_lb,
             environment=env,
             runway=rwy,
             flaps=flaps,
-            thrust="MANUAL" if explicit_rpm is not None else thrust,
+            thrust="MANUAL" if explicit_rating is not None or explicit_rpm is not None else thrust,
+            thrust_rating=explicit_rating,
             rpm_pct=explicit_rpm,
         )
         result = self.auto.select(inputs)

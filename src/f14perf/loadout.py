@@ -71,6 +71,54 @@ STATION_OPTIONS = {
 
 LOADOUT_PRESETS = {
     "Clean": {},
+    "AAW01 | BFM (0/0/2)": {
+        "1A": "AIM9M",
+        "8A": "AIM9M",
+    },
+    "AAW05 | Heavy CAP (4/2/2)": {
+        "1A": "AIM9M",
+        "1B": "AIM7M",
+        "3": "AIM54C47",
+        "4": "AIM54C47",
+        "5": "AIM54C47",
+        "6": "AIM54C47",
+        "8B": "AIM7M",
+        "8A": "AIM9M",
+    },
+    "AAW06 | Six Shooter (6/0/2)": {
+        "1A": "AIM9M",
+        "1B": "AIM54C47",
+        "3": "AIM54C47",
+        "4": "AIM54C47",
+        "5": "AIM54C47",
+        "6": "AIM54C47",
+        "8B": "AIM54C47",
+        "8A": "AIM9M",
+    },
+    "AG04 | Medium Strike": {
+        "1A": "AIM9M",
+        "1B": "AIM54C47",
+        "3": "GBU31",
+        "6": "GBU31",
+        "8A": "AIM9M",
+    },
+    "TARPS01 | TARPS": {
+        "1A": "AIM9M",
+        "1B": "AIM7M",
+        "5": "TARPS",
+        "8B": "AIM7M",
+        "8A": "AIM9M",
+    },
+    "Fleet defense | 6 AIM-54 + 2 tanks": {
+        "1B": "AIM54C47",
+        "2": "FPU1",
+        "3": "AIM54C47",
+        "4": "AIM54C47",
+        "5": "AIM54C47",
+        "6": "AIM54C47",
+        "7": "FPU1",
+        "8B": "AIM54C47",
+    },
     "2 external tanks + 2 AIM-9": {
         "1A": "AIM9",
         "2": "FPU1",
@@ -112,6 +160,35 @@ class Loadout:
             STORE_CATALOG[store].expendable_credit_lb
             for store in self.normalized_stations.values()
         )
+
+    @property
+    def loaded_store_count(self) -> int:
+        return sum(store != "EMPTY" for store in self.normalized_stations.values())
+
+    @property
+    def store_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for store in self.normalized_stations.values():
+            if store != "EMPTY":
+                counts[store] = counts.get(store, 0) + 1
+        return counts
+
+    @property
+    def natops_drag_reference(self) -> tuple[float, str] | None:
+        """Return only the two configurations explicitly printed in Figure 14-1."""
+
+        counts = self.store_counts
+        aim7_count = sum(counts.get(key, 0) for key in ("AIM7F", "AIM7M"))
+        aim54_count = sum(
+            counts.get(key, 0) for key in ("AIM54A47", "AIM54A60", "AIM54C47")
+        )
+        tank_count = counts.get("FPU1", 0)
+        total = sum(counts.values())
+        if aim7_count == 4 and total == 4:
+            return 8.0, "NAVAIR 01-F14AAP-1 Figure 14-1: four AIM-7"
+        if aim54_count == 6 and tank_count == 2 and total == 8:
+            return 100.0, "NAVAIR 01-F14AAP-1 Figure 14-1: six AIM-54 plus two 267-gallon tanks"
+        return None
 
     @property
     def summary(self) -> str:
