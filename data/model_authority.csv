@@ -1,0 +1,14 @@
+domain,production_model,status,baseline_source,dcs_validation,production_data,notes
+aircraft_weight,AircraftState,ACTIVE,Heatblur F-14B technical specification,DCS mission-editor gross-weight delta,data/f14_stores.csv,F-14B(U) retains F-14B empty-weight baseline until a supported DCS delta is measured
+stores_inventory,Loadout,ACTIVE,Heatblur DCS station matrix,DCS rearm menu comparison,data/f14_stores.csv,Inventory and per-station quantities follow the current Heatblur manual
+stores_weight,Loadout,GUARDED_ACTIVE,Nominal weapon masses,Controlled DCS payload-delta matrix,data/f14_stores.csv,Store and adapter masses retain source class and warnings
+stores_drag,Loadout,CONDITION_GATED_ACTIVE,NATOPS Figure 14-1 exact aggregate references,Controlled Tacview comparison,data/f14_stores.csv,Only clean and exact published aggregate cases are released; all decomposition is provisional
+takeoff_thrust,F110Deck,ACTIVE,NATOPS MIL indications and F110 evidence,Controlled DCS EIG sweeps,data/f110_takeoff_ratings.csv,Discrete FF-first ratings only
+rpm_crosscheck,F110Deck,GUARDED_ACTIVE,NATOPS MIL indication,Controlled DCS EIG sweeps,data/f110_takeoff_ff_environment.csv,RPM remains a secondary atmospheric cross-check
+takeoff_performance,AutoTakeoffSelector,CONDITION_GATED_ACTIVE,NATOPS-derived legacy grid,Controlled Tacview runway matrix,data/f14_perf.csv,External-store and unsupported reduced-power cases remain held
+takeoff_trim,TakeoffModel,TRIAL_ONLY,NATOPS procedure context,Controlled DCS trim matrix,data/dcs_takeoff_test_log.csv,Displayed trim values are next-test candidates
+climb,ClimbModel,PLANNING_HOLD,NATOPS performance supplement required,Controlled Tacview climb matrix,none,Current output is a conservative planning allowance only
+cruise,CruiseModel,PLANNING_HOLD,NATOPS performance supplement required,Controlled Tacview cruise matrix,data/f14_cruise_natops.csv,Legacy table remains a trial target and is not released performance
+landing_approach,LandingModel,ACTIVE,NATOPS Figure 11-8,DCS on-speed verification matrix,code digitization,15-unit AOA and digitized IAS chart are active
+landing_distance,LandingModel,PARTIAL_HOLD,NATOPS transcription requiring re-audit,Controlled Tacview landing matrix,data/f14_landing_natops_full.csv,Ground-roll grid remains guarded pending re-digitization
+mission_fuel,FuelModel,PLANNING_HOLD,NATOPS phase planning required,Controlled DCS mission runs,none,Phase result inherits held climb and cruise inputs

@@ -1,5 +1,6 @@
 import pytest
 
+from src.f14perf.aircraft import AircraftState
 from src.f14perf.climb import ClimbModel
 from src.f14perf.cruise import CruiseModel
 from src.f14perf.energy import EnergyModel
@@ -7,6 +8,7 @@ from src.f14perf.fuel import FuelModel
 from src.f14perf.kneeboard import render_kneeboard_png, render_mission_card_pdf
 from src.f14perf.landing import LandingModel
 from src.f14perf.mission import MissionPlanner
+from src.f14perf.loadout import loadout_from_preset
 from src.f14perf.types import Environment, Runway, TakeoffInputs
 
 
@@ -92,12 +94,17 @@ def test_mission_card_retains_selected_climb_strategy(data_dir):
         asda_ft=8000,
         elevation_ft=0,
     )
-    card = MissionPlanner(data_dir).build_card(
-        TakeoffInputs(65000, environment, runway),
-        landing_weight_lb=54000,
-        drag_index=0,
+    aircraft = AircraftState(
+        "F-14B",
+        loadout_from_preset("Clean", "F-14B"),
+        internal_fuel_lb=16_000,
+        gross_weight_override_lb=65_000,
+    )
+    card = MissionPlanner(data_dir).build_for_aircraft(
+        aircraft,
+        environment,
+        runway,
         route_nm=100,
-        starting_fuel_lb=16000,
         bingo_lb=4000,
         joker_margin_lb=2000,
         climb_strategy="MINIMUM_TIME",
@@ -109,6 +116,13 @@ def test_mission_card_retains_selected_climb_strategy(data_dir):
     assert card.metadata["climb_distance_to_cruise_nm"] > 0
     assert all(point.rpm_pct == 100 for point in card.climb)
     assert card.climb[-1].altitude_ft == card.cruise.optimum_altitude_ft
+    assert card.metadata["launch_gross_weight_lb"] == 65_000
+    assert card.metadata["aircraft_state_id"]
+
+
+def test_independent_mission_phase_inputs_are_disabled(data_dir):
+    with pytest.raises(RuntimeError, match="Independent takeoff"):
+        MissionPlanner(data_dir).build_card()
 
 
 def test_landing_fuel_reference_is_rounded_down_and_conservative(data_dir):

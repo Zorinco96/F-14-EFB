@@ -1,6 +1,6 @@
 # F-14 EFB
 
-A provenance-aware F-14B electronic flight bag for DCS World.
+A provenance-aware F-14B and F-14B(U) electronic flight bag for DCS World.
 
 ## Purpose
 
@@ -11,6 +11,8 @@ F-14 EFB is a clean performance architecture built around three rules:
 3. When a table does not exist, use calibrated or physics-based estimates and label them explicitly.
 
 This project is for **DCS simulation only**. It is not an approved real-world F-14 performance source and must not be used for real aircraft operations.
+
+The application now uses one synchronized `AircraftState`. Variant, station stores, fuel, launch weight, recovery weight, drag state, takeoff, climb, cruise, landing, mission fuel, and mission-card output cannot be maintained as conflicting normal-workflow inputs.
 
 ## Implemented features
 
@@ -42,8 +44,12 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - 15% default runway planning factor
 - AEO initial climb gate, default 300 ft/NM
 - OEI climb advisory
-- direct DCS gross-weight input
-- DCS-style station loadout plus Heatblur SCL-based BFM, CAP, strike, TARPS, and fleet-defense presets; internal drag units are derived automatically
+- calculated gross weight from published empty weight, crew/items, structured stores, and internal/external fuel
+- advanced DCS gross-weight override for controlled testing only, carried through recovery
+- complete Heatblur station-matrix loadout database for stations 1A through 8A, including F-14B(U) JDAM and enhanced guided weapons
+- variant and station compatibility, per-station quantities, Phoenix-pallet relationships, and asymmetric selections
+- Heatblur SCL-based BFM, CAP, strike, TARPS, training, and special-loadout presets that populate the same station model
+- launch and expected-recovery store disposition with retained, expended, and jettisoned choices
 - validation hold for external-store, hot/high reduced-thrust, and out-of-grid takeoff conditions
 - DCS runway-start available distance when known; Henderson 35L defaults to the Tacview-reconciled 4,800 ft instead of the full 6,501 ft
 - in-app DCS engine, user-observation, and attached-Tacview motion tables
@@ -80,9 +86,9 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - on-speed reference of 15 AOA units
 - flight-test-chart on-speed IAS for DLC neutral and DLC stowed, with +/-4 kt chart tolerance
 - 60,000 lb field and 54,000 lb carrier landing references
-- maximum landing fuel with all stores retained
-- maximum landing fuel with selected expendable stores expended
-- conservative expendable-store credits derived from the DCS-style station loadout
+- maximum landing fuel from synchronized launch and recovery zero-fuel weights
+- recovery fuel capacity adjusted for retained or jettisoned external tanks
+- F-14B and F-14B(U) carrier-limit treatment tied to the selected variant
 
 ### Maneuvering
 
@@ -103,6 +109,7 @@ This project is for **DCS simulation only**. It is not an approved real-world F-
 - consolidated mission notes instead of repeated warning banners
 - downloadable 768 x 1024 DCS kneeboard PNG
 - downloadable one-page printable mission-card PDF
+- configuration ID tying every exported value to the same aircraft state
 
 ### Validation
 
@@ -122,6 +129,8 @@ The repository contains legacy datasets labeled as NATOPS-derived. Version 3 pre
 - ESTIMATED
 
 See `docs/PERFORMANCE_DATA_AUDIT.md`, `docs/MODEL_METHODS.md`, `docs/EFB_UX_BENCHMARK_2026-09-01.md`, and `docs/VALIDATION_MATRIX_2026-09-01.md`.
+
+The governing architecture, reconciliation sequence, and acceptance status are in `docs/DEVELOPMENT_PLAN.md`. `data/model_authority.csv` declares the sole production model for each major domain. `data/data_inventory.csv` identifies which legacy files are active, guarded, evidence-only, or isolated from production.
 
 ## Run
 
@@ -147,5 +156,8 @@ python tools/run_validation_matrix.py
 - `data/f110_takeoff_ratings.csv`
 - `data/validation_scenarios.csv`
 - `data/dcs_airports.csv`
+- `data/f14_stores.csv`
+- `data/model_authority.csv`
+- `data/data_inventory.csv`
 
 The old `data/f14_aero.csv` is retained for historical traceability but is intentionally not authoritative in v3 because it contains malformed values.

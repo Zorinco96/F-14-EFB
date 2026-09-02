@@ -14,7 +14,7 @@ from .weather import wind_components
 class LandingModel:
     FIELD_LANDING_LIMIT_LB = 60_000.0
     CARRIER_LANDING_LIMIT_LB = 54_000.0
-    USABLE_FUEL_LB = 20_000.0
+    USABLE_FUEL_LB = 19_800.0
     REQUIRED = {
         "flap_setting", "gross_weight_lbs", "pressure_alt_ft", "temp_f",
         "headwind_kt", "ground_roll_ft_unfactored",
@@ -34,6 +34,7 @@ class LandingModel:
         flaps: str = "DOWN",
         planning_factor: float = 1.15,
         carrier: bool = False,
+        carrier_limit_lb: float | None = None,
     ) -> LandingResult:
         flap = flaps.upper()
         sub = self.df[self.df["flap_setting"] == flap]
@@ -69,8 +70,15 @@ class LandingModel:
         margin = runway.asda_ft - factored
         if margin < 0:
             warnings.append(f"Factored landing ground roll exceeds available runway by {abs(margin):.0f} ft.")
-        if carrier and weight_lb > 54000:
-            warnings.append("Carrier landing weight exceeds the 54,000 lb maximum trap weight documented by Heatblur.")
+        effective_carrier_limit = (
+            self.CARRIER_LANDING_LIMIT_LB
+            if carrier_limit_lb is None
+            else float(carrier_limit_lb)
+        )
+        if carrier and weight_lb > effective_carrier_limit:
+            warnings.append(
+                f"Carrier landing weight exceeds the {effective_carrier_limit:,.0f} lb planning limit for the selected variant."
+            )
 
         # NAVAIR 01-F14AAP-1, Figure 11-8 is a flight-test chart for 15 units
         # AOA, 20-degree wing sweep, and all drag indexes.  The two plotted
@@ -116,36 +124,67 @@ class LandingModel:
 
     def fuel_reference(
         self,
-        takeoff_weight_lb: float,
-        starting_fuel_lb: float,
+        takeoff_weight_lb: float | None = None,
+        starting_fuel_lb: float | None = None,
         expendable_credit_lb: float = 0.0,
+        *,
+        launch_zero_fuel_weight_lb: float | None = None,
+        recovery_zero_fuel_weight_lb: float | None = None,
+        launch_fuel_capacity_lb: float | None = None,
+        recovery_fuel_capacity_lb: float | None = None,
+        field_limit_lb: float | None = None,
+        carrier_limit_lb: float | None = None,
     ) -> LandingFuelReference:
-        retained_zfw = max(0.0, float(takeoff_weight_lb) - float(starting_fuel_lb))
-        credit = max(0.0, float(expendable_credit_lb))
-        expended_zfw = max(0.0, retained_zfw - credit)
+        """Return retained and planned-recovery maximum-fuel references.
 
-        def available(limit: float, zfw: float) -> float:
-            value = max(0.0, min(self.USABLE_FUEL_LB, limit - zfw))
+        The authoritative path passes launch and recovery zero-fuel weights from
+        ``AircraftState``. The first three arguments remain only for callers
+        that have not yet migrated; they are converted to the same relationship.
+        """
+
+        if launch_zero_fuel_weight_lb is None:
+            if takeoff_weight_lb is None or starting_fuel_lb is None:
+                raise ValueError(
+                    "Provide AircraftState zero-fuel weights or legacy takeoff weight and starting fuel"
+                )
+            launch_zfw = max(0.0, float(takeoff_weight_lb) - float(starting_fuel_lb))
+        else:
+            launch_zfw = max(0.0, float(launch_zero_fuel_weight_lb))
+
+        if recovery_zero_fuel_weight_lb is None:
+            credit = max(0.0, float(expendable_credit_lb))
+            recovery_zfw = max(0.0, launch_zfw - credit)
+        else:
+            recovery_zfw = max(0.0, float(recovery_zero_fuel_weight_lb))
+            credit = max(0.0, launch_zfw - recovery_zfw)
+
+        field_limit = self.FIELD_LANDING_LIMIT_LB if field_limit_lb is None else float(field_limit_lb)
+        carrier_limit = self.CARRIER_LANDING_LIMIT_LB if carrier_limit_lb is None else float(carrier_limit_lb)
+        launch_capacity = self.USABLE_FUEL_LB if launch_fuel_capacity_lb is None else float(launch_fuel_capacity_lb)
+        recovery_capacity = launch_capacity if recovery_fuel_capacity_lb is None else float(recovery_fuel_capacity_lb)
+
+        def available(limit: float, zfw: float, capacity: float) -> float:
+            value = max(0.0, min(capacity, limit - zfw))
             return math.floor(value / 100.0) * 100.0
 
         return LandingFuelReference(
-            field_limit_lb=self.FIELD_LANDING_LIMIT_LB,
-            carrier_limit_lb=self.CARRIER_LANDING_LIMIT_LB,
-            retained_zero_fuel_weight_lb=round(retained_zfw),
+            field_limit_lb=field_limit,
+            carrier_limit_lb=carrier_limit,
+            retained_zero_fuel_weight_lb=round(launch_zfw),
             expendable_credit_lb=round(credit),
-            field_retained_fuel_lb=available(self.FIELD_LANDING_LIMIT_LB, retained_zfw),
-            field_expended_fuel_lb=available(self.FIELD_LANDING_LIMIT_LB, expended_zfw),
-            carrier_retained_fuel_lb=available(self.CARRIER_LANDING_LIMIT_LB, retained_zfw),
-            carrier_expended_fuel_lb=available(self.CARRIER_LANDING_LIMIT_LB, expended_zfw),
+            field_retained_fuel_lb=available(field_limit, launch_zfw, launch_capacity),
+            field_expended_fuel_lb=available(field_limit, recovery_zfw, recovery_capacity),
+            carrier_retained_fuel_lb=available(carrier_limit, launch_zfw, launch_capacity),
+            carrier_expended_fuel_lb=available(carrier_limit, recovery_zfw, recovery_capacity),
             provenance=Provenance(
                 Method.ESTIMATED,
-                "F-14 landing gross-weight limits + entered mission weight",
-                "60,000 lb field limit; 54,000 lb carrier/FCLP limit assumes AYC-679 or AYC-805; selected-store expendable credit rounded down; results rounded down to 100 lb",
+                "F-14 landing limits + synchronized AircraftState",
+                f"{field_limit:,.0f} lb field limit; {carrier_limit:,.0f} lb variant carrier/FCLP limit; station-level recovery disposition; retained fuel-system capacity; results rounded down to 100 lb",
                 "Conservative quick reference; verify actual DCS gross weight before recovery",
             ),
             notes=[
-                "All-stores-retained values use takeoff gross weight minus starting fuel as retained zero-fuel weight.",
-                "Expended values credit only selected weapons with a defined conservative expendable weight. Tanks, pods, racks, adapters, and unknown stores remain retained.",
-                "The 54,000 lb carrier/FCLP reference assumes the AYC-679 or AYC-805 modification appropriate to B(U) planning. The unmodified-aircraft limit is 51,800 lb except when operational necessity dictates.",
+                "Retained values use the synchronized launch zero-fuel weight and selected launch fuel capacity.",
+                "Expected-recovery values use station-level retained, expended, and jettisoned selections plus the fuel capacity remaining after planned tank jettison.",
+                f"The selected variant uses a {carrier_limit:,.0f} lb carrier/FCLP planning limit.",
             ],
         )

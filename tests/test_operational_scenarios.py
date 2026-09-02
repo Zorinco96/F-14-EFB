@@ -25,6 +25,9 @@ def test_operational_battery_covers_requested_environment_and_loadout_axes():
     assert (outcomes["climb_fuel_lb"] > 0).all()
     assert (outcomes["cruise_ff_pph_per_engine"] > 0).all()
     assert (outcomes["landing_ground_roll_ft"] > 0).all()
+    assert outcomes["aircraft_state_id"].str.len().eq(10).all()
+    assert set(outcomes["variant"]) == {"F-14B", "F-14B(U)"}
+    assert (outcomes["launch_weight_override_lb"] == outcomes["launch_weight_override_lb"]).all()
 
 
 def test_hot_high_and_tailwind_trends_are_conservative():

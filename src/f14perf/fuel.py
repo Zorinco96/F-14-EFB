@@ -6,7 +6,7 @@ from .provenance import Method, Provenance
 from .types import ClimbPoint, CruiseResult, FuelPlan
 
 
-USABLE_FUEL_ROUGH_LB = 20000.0
+USABLE_FUEL_ROUGH_LB = 19800.0
 
 
 class FuelModel:
@@ -20,8 +20,10 @@ class FuelModel:
         joker_margin_lb: float = 2000.0,
     ) -> FuelPlan:
         warnings: list[str] = []
-        if starting_fuel_lb > USABLE_FUEL_ROUGH_LB + 500:
-            warnings.append("Starting fuel exceeds the roughly 20,000 lb usable-fuel figure documented by Heatblur.")
+        if starting_fuel_lb > USABLE_FUEL_ROUGH_LB + 100:
+            warnings.append(
+                "Starting fuel exceeds the 16,200 lb internal plus 3,600 lb external capacity documented by Heatblur."
+            )
         taxi_takeoff = 400.0
         climb_burn = 0.0
         previous_altitude = 0.0

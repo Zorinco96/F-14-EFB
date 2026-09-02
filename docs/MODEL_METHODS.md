@@ -106,15 +106,21 @@ F-14 EFB uses an explicit provisional configuration schedule. Recent loaded-airc
 
 The pre-roll settings target an easy rotation through the planned cue without excessive backpressure. They are not validated operational values. All settings require a controlled matrix across center-of-gravity and loadout conditions. They are engineering estimates, not a validated NATOPS schedule. Pitch trim does not command an airspeed and cannot guarantee V2+15 after an engine failure. The pilot must control pitch to acquire and maintain the displayed OEI climb speed, then trim as required after establishing the flight path.
 
-## Takeoff stores and validation hold
+## Unified aircraft state, stores, and validation hold
 
-Takeoff gross weight captures store and fuel weight but does not capture aerodynamic drag. The current takeoff model does not apply the mission drag index or a store-specific drag increment to runway distance or climb. When external stores are selected, the app therefore labels the takeoff result `UNVALIDATED` and suppresses a GO determination. Hot/high reduced-thrust conditions are also held unvalidated. The Henderson fuel-flow observations are now used locally, but the thrust and runway-distance correction still does not reproduce the +40 C takeoff tests. The app continues to display provisional values to support controlled calibration, but they are not presented as validated runway guidance.
+`AircraftState` is the only production source for variant, station stores, internal and external fuel, launch and recovery zero-fuel weights, launch and recovery gross weights, and drag state. The normal workflow has no independent takeoff or landing gross-weight input. An advanced DCS gross-weight override remains for controlled testing; its explicit adjustment is carried into recovery.
+
+The published F-14B empty weight is 41,780 lb. F-14B(U) currently retains that baseline until a controlled DCS payload-delta test establishes a supported variant difference. Crew and operating items default to a documented 440 lb project assumption. Internal fuel capacity is 16,200 lb. The two FPU-1 tanks add 3,600 lb external fuel capacity.
+
+Takeoff gross weight now captures store and fuel weight but the takeoff model still lacks a validated store-specific aerodynamic correction. When external stores are selected, the app therefore labels the takeoff result `PLANNING HOLD` and suppresses a GO determination. Hot/high reduced-thrust conditions are also held. The Henderson fuel-flow observations are used locally, but the thrust and runway-distance correction still does not reproduce the +40 C takeoff tests. Provisional values remain visible for controlled calibration and are not presented as validated runway guidance.
 
 The corrected 62,000 lb MANEUVER run records rotation at 143 KIAS and 5401 ft, followed by liftoff at 6101 ft. This is a 700 ft rotation segment. It is an all-engines-operating liftoff observation and must not be mislabeled as accelerate-go or 50-ft distance.
 
-The pilot does not enter a drag index. The Streamlit UI provides Heatblur SCL-based presets and a DCS-style station panel for stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. Gross weight remains a direct DCS input, so the app does not add store weight a second time. The selected expendable-store credit is calculated automatically for recovery planning.
+The pilot does not enter a drag index. `data/f14_stores.csv` provides one structured inventory for Heatblur stations 1A, 1B, 2, 3, 4, 5, 6, 7, 8B, and 8A. It records per-station quantity, F-14B or F-14B(U) compatibility, adapter family, nominal mass, external fuel capacity, expendability, jettisonability, provisional drag, and separate source classes. Heatblur SCL presets populate this same station model rather than bypassing it.
 
-Station selections generate low-confidence internal model drag units for climb, cruise, and energy calculations. These units are engineering estimates, not a released F-14 drag-index table. NAVAIR Figure 14-1 directly identifies only two configuration references: DI 8 for four AIM-7 and DI 100 for six AIM-54 plus two 267-gallon tanks. The app recognizes those exact combinations but does not invent a unique per-store decomposition from two aggregate points.
+Nominal store masses remain `NOMINAL_PLANNING`. Rack, pallet, and adapter masses remain explicit `UNRESOLVED_DCS_DELTA` values of zero until a controlled DCS payload-delta matrix exists. The model warns about both conditions and never creates an undocumented adapter-mass credit.
+
+Station selections generate low-confidence internal model drag units for climb and cruise calculations. These units are engineering estimates, not a released F-14 drag-index table. NAVAIR Figure 14-1 directly identifies only two configuration references: DI 8 for four AIM-7 and DI 100 for six AIM-54 plus two 267-gallon tanks. The app recognizes those exact combinations but does not invent a unique per-store decomposition from two aggregate points.
 
 The absolute V2 values in the active configuration-specific takeoff model do not use the same baseline as the legacy `vspeeds.csv` table. V3 uses only the legacy Vfs-to-V2 spread and applies it to the active V2:
 
@@ -162,12 +168,13 @@ On-speed AOA is 15 units. On-speed IAS uses the flight-test curves in NAVAIR 01-
 Landing fuel quick-reference calculations use:
 
 - 60,000 lb maximum field landing gross weight
-- 54,000 lb maximum carrier/FCLP landing gross weight
-- entered takeoff gross weight minus starting fuel as retained zero-fuel weight
-- selected expendable-store credits rounded down from nominal store weights
-- roughly 20,000 lb maximum usable fuel
+- 51,800 lb F-14B or 54,000 lb modified F-14B(U) carrier/FCLP planning limit
+- synchronized launch zero-fuel weight for the all-stores-retained reference
+- synchronized expected-recovery zero-fuel weight after retained, expended, and jettisoned station selections
+- 16,200 lb internal fuel capacity plus up to 3,600 lb in selected external tanks
+- recovery fuel capacity reduced when a tank is planned jettisoned
 
-Maximum fuel values are rounded down to the nearest 100 lb. Tanks, pods, racks, adapters, and unclassified stores remain in retained weight.
+Maximum fuel values are rounded down to the nearest 100 lb. Unresolved rack and adapter mass is not silently credited.
 
 ## Cruise
 

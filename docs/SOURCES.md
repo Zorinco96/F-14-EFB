@@ -6,6 +6,13 @@
 
 https://f14.manuals.heatblur.se/
 
+Direct configuration references:
+
+- Station matrix: https://f14.manuals.heatblur.se/f14ab/stores/overview.html
+- F-14B(U) weapons and SCL overview: https://f14.manuals.heatblur.se/f14bu/weapons/overview.html
+- Fuel system: https://f14.manuals.heatblur.se/f14ab/systems/engines_and_fuel_systems/fuel_system.html
+- Technical specification: https://f14.manuals.heatblur.se/intro/specification.html
+
 Used for current DCS systems/configuration references including flap behavior, AOA presentation, fuel system, F110 integration, F-14B(U) features, carrier landing-weight context, and identification of the F-14B engine instrument group RPM indication as high-pressure compressor RPM (N2).
 
 Relevant sections include:
@@ -17,7 +24,7 @@ Relevant sections include:
 - F-14B(U) Weapons / Loadout overview
 - Official tutorial index, including the front-seat startup, taxi, and takeoff video
 
-The Heatblur fuel-system documentation gives roughly 20,000 lb usable fuel. The F-14B(U) loadout documentation identifies 54,000 lb as the maximum carrier landing weight used for trap-fuel planning. Its weapons overview supplies the AAW, AG, and TARPS Standard Conventional Loadout count patterns used by the preset menu.
+The Heatblur fuel-system table gives 16,200 lb internal fuel and 3,600 lb external fuel, or 19,800 lb total. The technical specification gives 41,780 lb empty weight and 74,349 lb maximum weight for the F-14B. The F-14B(U) loadout documentation identifies 54,000 lb as the maximum carrier landing weight used for trap-fuel planning. Its weapons overview supplies the AAW, AG, TARPS, training, and special Standard Conventional Loadout count patterns used by the preset menu.
 
 The official Heatblur tutorial video was used as a procedural presentation cross-check, not as a numerical calibration source. Its published context does not provide a controlled weight/weather/loadout matrix or machine-readable cockpit FF/RPM series, so no performance database values were fitted to video timing or visual runway position.
 
@@ -68,3 +75,9 @@ The attached Tacview files were parsed with `tools/analyze_tacview.py`. They pro
 The prior cruise-table citation to NAVAIR 01-F14AAP-1B page 241 was removed because that pocket checklist does not contain the claimed page. Cruise altitude, Mach, FF, and RPM remain unverified trial outputs.
 
 NAVAIR 01-F14AAP-1 Figure 14-1 appears in the airspeed-indicator-failure procedure. Its climb and cruise AOA values are alternate cues for that failure context. They do not validate the normal climb schedule, time/distance/fuel, optimum cruise level, cruise Mach, FF, or RPM.
+
+## Production data governance
+
+`data/model_authority.csv` declares the single production model for aircraft weight, inventory, store weight, drag, thrust, RPM, takeoff, trim, climb, cruise, landing, and mission fuel. `data/data_inventory.csv` classifies every repository data file. Conflicting continuous-derate fits, takeoff overlays, refusal-distance tables, malformed aerodynamic data, and out-of-scope TF30 data are isolated from the production path rather than averaged into active results.
+
+`data/f14_stores.csv` separates inventory provenance (`HEATBLUR_DCS`), store-mass provenance (`NOMINAL_PLANNING`), adapter-mass provenance (`UNRESOLVED_DCS_DELTA`), and drag provenance (`ASSUMPTION`). Exact DCS payload-delta and controlled Tacview drag matrices remain required before those guarded fields can be promoted.

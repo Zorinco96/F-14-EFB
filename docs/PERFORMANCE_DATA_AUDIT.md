@@ -4,13 +4,13 @@
 
 The v3 project is intended to recover as much F-14B performance behavior as practical from available sources without converting uncertain data into false precision.
 
-The desired hierarchy is:
+The governing source hierarchy is:
 
-1. Direct table point
-2. Interpolation inside a credible table
-3. DCS-calibrated model
-4. Limited extrapolation
-5. Physics-based estimate
+1. F-14 NATOPS performance data and limitations
+2. Controlled DCS testing analyzed through Tacview
+3. A traceable DCS correction to the NATOPS baseline when a difference is material and repeatable
+4. Interpolation inside an authoritative table
+5. Derived planning assumptions and limited extrapolation
 
 Every calculation should make its position in that hierarchy visible.
 
@@ -22,7 +22,7 @@ The following findings changed the application:
 2. Climb and cruise fuel-flow values passed through `F110Deck.total()` but retained a `per_engine` field name. This made total and per-engine semantics easy to confuse. Operational displays now use explicit PPH per engine fields; mission fuel calculations multiply by two internally.
 3. Cruise entries such as 33,900 ft were not immediately usable planning levels. The app rounds them to the nearest 1,000 ft flight level, but now labels the entire altitude/Mach table as an unverified legacy trial because its prior pocket-checklist citation was invalid.
 4. The energy section used the same unvalidated low-order polar to publish specific excess power and sustained-turn values. These have been removed. The replacement is limited to ideal coordinated-turn geometry, which does not assert aircraft capability.
-5. Landing planning lacked a loadout-sensitive recovery fuel reference. The app now derives retained zero-fuel weight from entered gross weight and starting fuel, then shows field and carrier maximum fuel with stores retained and with selected expendable stores expended.
+5. Landing planning lacked a loadout-sensitive recovery fuel reference. The app now derives launch and recovery zero-fuel weights from one aircraft state, including station-level retained, expended, and jettisoned selections.
 6. Repeated low-confidence banners obscured the mission card. The UI now consolidates planning notes in one panel and handles uncertainty through conservative values and an explicit planning hold.
 7. The prior 54,000 lb on-speed estimate of 133 KIAS did not match NAVAIR 01-F14AAP-1 Figure 11-8. The flight-test chart gives approximately 140 KIAS with DLC neutral and 131 KIAS with DLC stowed, with a chart tolerance of +/-4 kt. The app now displays both lines.
 8. `MEETS PLAN` and later `LEGACY FIT` overstated the confidence of an unverified legacy result. The neutral status is now `REFERENCE ONLY`; external-store, hot/high reduced-thrust, and out-of-grid cases remain on `PLANNING HOLD`.
@@ -39,6 +39,17 @@ The follow-on audit made five additional corrections:
 3. Reduced-rating FF/RPM guidance is environment-bounded. The Henderson observations support a local DERATE 1 indication, but no general pressure-altitude/temperature law. AUTO retains MIL outside an observation envelope.
 4. NAVAIR Figure 14-1 was re-read in page context. It is an airspeed-indicator-failure reference, not a normal best-climb or optimum-cruise performance schedule. The AOA values remain visible only as alternate cues and no longer appear to validate modeled climb or cruise outputs.
 5. A maintained scenario battery now covers light, heavy, cold, hot, high, short-runway, tailwind, clean, fleet-defense, strike, external-tank, reduced-rating, MIL, and Henderson Tacview cases. Every case runs through takeoff, climb, cruise, and landing and has an expected safety state.
+
+## September 2026 synchronized-state audit
+
+The loadout and weight audit made six architectural corrections:
+
+1. Independent normal-workflow launch weight, landing weight, starting fuel, and drag entries were removed.
+2. `AircraftState` now supplies the same variant, loadout, fuel, weight, and drag state to takeoff, climb, cruise, recovery, and mission-card output.
+3. `data/f14_stores.csv` replaces the simplified hard-coded catalog with the Heatblur station matrix, per-station quantities, variant filtering, adapters, fuel capacity, and recovery disposition.
+4. Store mass, adapter mass, and drag carry separate source classes. Nominal or unresolved values are not silently promoted.
+5. `data/model_authority.csv` names one production model for each major domain. `data/data_inventory.csv` removes competing and obsolete files from the production path without erasing their evidence history.
+6. Climb, cruise, landing distance, and mission fuel retain explicit holds where the required NATOPS and controlled Tacview reconciliation remains incomplete.
 
 ## Availability constraint
 
@@ -59,7 +70,7 @@ Useful anchors include:
 - F-14B total maximum dry thrust listed as 56,400 lbf in the technical specification.
 - full flap extension is documented as 35 degrees, with maneuver flap authority lower than full flap.
 - 15 units AOA is the on-speed approach reference.
-- usable fuel is roughly 20,000 lb.
+- usable fuel is 16,200 lb internal plus 3,600 lb in two external tanks.
 - current F-14B(U) loadout documentation uses 54,000 lb as maximum carrier landing weight.
 
 These values are used as limits/reference context, not as a substitute for missing performance charts.

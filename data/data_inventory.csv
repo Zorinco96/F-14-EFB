@@ -1,0 +1,30 @@
+path,status,production_domain,reason
+F110_dryden_engine.csv,ISOLATED_LEGACY,none,Not used by the current production path
+F110_engine.csv,ACTIVE_GUARDED,takeoff_thrust,Legacy F110 deck supplies provisional internal scaling and planning fuel flow
+TF30_engine.csv,ISOLATED_OUT_OF_SCOPE,none,F-14A engine is outside the current F-14B variants
+calibration.csv,ISOLATED_LEGACY,none,Obsolete calibration path
+calibration_sl_summary.csv,ISOLATED_LEGACY,none,Obsolete calibration summary
+dcs_airports.csv,ACTIVE,airport,DCS planning airport and runway database
+dcs_engine_observations.csv,EVIDENCE_ONLY,takeoff_thrust,Raw DCS observation register
+dcs_runway_starts.csv,ACTIVE,airport,Observed DCS runway-start distance corrections
+dcs_takeoff_test_log.csv,EVIDENCE_ONLY,takeoff_trim,Raw user DCS test register
+derate_config.json,ISOLATED_CONTINUOUS_DERATE,none,Continuous derate configuration is disabled
+f110_ff_to_rpm_knots.csv,ACTIVE_REFERENCE_ONLY,rpm_crosscheck,Observed near-standard DCS EIG knots
+f110_ff_to_rpm_logfit.csv,ISOLATED_CONTINUOUS_DERATE,none,Continuous FF to RPM fit is not in the takeoff path
+f110_takeoff_ff_environment.csv,ACTIVE_GUARDED,rpm_crosscheck,Sparse DCS environmental indication observations
+f110_takeoff_ratings.csv,ACTIVE,takeoff_thrust,Discrete operational rating registry
+f110_tff_model.csv,ISOLATED_LEGACY,none,Legacy continuous thrust-specific-fuel-flow model
+f14_aero.csv,ISOLATED_KNOWN_BAD,none,Malformed legacy aerodynamic fields
+f14_cruise_natops.csv,ACTIVE_PLANNING_HOLD,cruise,Unverified legacy trial target
+f14_landing_natops_full.csv,ACTIVE_GUARDED,landing_distance,Legacy ground-roll transcription pending re-audit
+f14_perf.csv,ACTIVE_GUARDED,takeoff_performance,Legacy NATOPS-derived takeoff grid with explicit gates
+f14_perf_calibrated_SL_overlay.csv,ISOLATED_LEGACY,none,Competing takeoff overlay removed from production path
+f14_stores.csv,ACTIVE,stores_inventory,Single structured DCS inventory and planning-mass registry
+model_authority.csv,ACTIVE,provenance,Single production-model authority registry
+model_config_v3.json,ISOLATED_LEGACY,none,Obsolete multi-model configuration
+refusal_asd.csv,ISOLATED_LEGACY,none,Competing refusal-distance model
+tacview_takeoff_motion.csv,EVIDENCE_ONLY,takeoff_performance,Parsed attached Tacview motion evidence
+takeoff_data_expanded.csv,ISOLATED_LEGACY,none,Competing expanded takeoff dataset
+validation_scenarios.csv,TEST_INPUT,validation,Maintained scenario definitions and expected safety state
+vspeeds.csv,ACTIVE_REFERENCE_ONLY,takeoff_performance,Only the legacy Vfs minus V2 spread remains referenced
+data_inventory.csv,ACTIVE,provenance,Exhaustive production and isolation registry for data files

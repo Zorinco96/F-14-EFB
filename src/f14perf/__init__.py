@@ -1,3 +1,4 @@
+from .aircraft import AircraftState, VariantDefinition
 from .types import (
     ClimbProfile,
     ClimbPoint,
@@ -14,6 +15,6 @@ from .types import (
 )
 
 __all__ = [
-    "Environment", "Runway", "TakeoffInputs", "TakeoffResult", "ClimbPoint", "ClimbProfile",
+    "AircraftState", "VariantDefinition", "Environment", "Runway", "TakeoffInputs", "TakeoffResult", "ClimbPoint", "ClimbProfile",
     "LandingResult", "LandingFuelReference", "CruiseResult", "EnergyResult", "FuelPlan", "MissionCard",
 ]
